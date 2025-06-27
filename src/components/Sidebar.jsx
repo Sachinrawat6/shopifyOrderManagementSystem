@@ -1,8 +1,9 @@
 import React from "react";
-import { FiUpload, FiClock, FiCheckCircle, FiTruck, FiSettings, FiLogOut, FiX, FiBox } from "react-icons/fi";
+import { FiUpload, FiClock, FiCheckCircle, FiTruck, FiSettings, FiLogOut, FiX, FiBox, FiCodesandbox } from "react-icons/fi";
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const menuItems = [
+    { id: "dashboard", label: "Dashboard", icon: <FiCodesandbox className="text-lg" /> },
       { id: "pending", label: "Pending Orders", icon: <FiClock className="text-lg" /> },
       { id: "confirmed", label: "Confirmed Orders", icon: <FiCheckCircle className="text-lg" /> },
       { id: "cancel", label: "Cancelled Orders", icon: <FiX className="text-lg" /> },

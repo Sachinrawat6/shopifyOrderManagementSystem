@@ -5,9 +5,10 @@ import ConfirmedOrders from "./pages/ConfirmedOrders";
 import CancelOrders from "./pages/CancelOrders";
 import UploadOrderList from "./pages/UploadOrderList"
 import ShippedOrders from "./pages/ShippedOrders";
+import Dashboard from "./pages/Dashboard";
 
 const App = () => {
-  const [activeTab, setActiveTab] = useState("upload");
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   return (
     <div className="flex">
@@ -20,6 +21,7 @@ const App = () => {
         {activeTab === "confirmed" && <ConfirmedOrders/>}
         {activeTab === "cancel" && <CancelOrders/>}
         {activeTab === "shipped" && <ShippedOrders/>}
+        {activeTab === "dashboard" && <Dashboard/>}
       </main>
     </div>
   );
