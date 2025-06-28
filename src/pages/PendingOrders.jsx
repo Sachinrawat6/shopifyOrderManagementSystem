@@ -1,6 +1,6 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { FiRefreshCw, FiCheck, FiX, FiClock, FiAlertCircle, FiSearch, FiDownload } from "react-icons/fi";
+import { FiRefreshCw, FiCheck, FiX, FiClock, FiAlertCircle, FiSearch, FiDownload, FiCalendar } from "react-icons/fi";
 import { PulseLoader } from "react-spinners";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -8,6 +8,8 @@ import * as FileSaver from 'file-saver';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const PendingOrders = () => {
   const [pendingOrders, setPendingOrders] = useState([]);
@@ -16,6 +18,9 @@ const PendingOrders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [sortOrder, setSortOrder] = useState("oldest"); // "newest" or "oldest"
   const BASE_URL = "https://return-inventory-backend.onrender.com/api/v1/shopify";
 
   // Toast notification helper
@@ -31,33 +36,89 @@ const PendingOrders = () => {
   };
 
   // Fetch pending orders
-  const fetchPendingOrders = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(`${BASE_URL}/pending-orders`);
-      setPendingOrders(response.data.data.map(order => ({
-        ...order,
-        confirming: false,
-        cancelling: false,
-        confirmed: false,
-        cancelled: false,
-        error: null,
-        selected: false
-      })));
-      setSelectedOrders([]);
-      setSelectAll(false);
-    } catch (error) {
-      setError(error.message);
-      showToast(`Failed to load orders: ${error.message}`, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const fetchPendingOrders = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const response = await axios.get(`${BASE_URL}/pending-orders`);
+  //     setPendingOrders(response.data.data.map(order => ({
+  //       ...order,
+  //       confirming: false,
+  //       cancelling: false,
+  //       confirmed: false,
+  //       cancelled: false,
+  //       error: null,
+  //       selected: false,
+  //       orderDate: new Date(order.order_date) // Convert to Date object for sorting
+  //     })));
+  //     setSelectedOrders([]);
+  //     setSelectAll(false);
+  //   } catch (error) {
+  //     setError(error.message);
+  //     showToast(`Failed to load orders: ${error.message}`, 'error');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
-  // Filter orders based on search term
-  const filteredOrders = pendingOrders.filter(order =>
-    order.order_id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Add this utility function at the top of your component (outside the PendingOrders function)
+const parseCustomDate = (dateString) => {
+  if (!dateString) return null;
+  
+  const [day, month, year] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+// Inside your PendingOrders component, modify the fetchPendingOrders function:
+const fetchPendingOrders = async () => {
+  setLoading(true);
+  try {
+    const response = await axios.get(`${BASE_URL}/pending-orders`);
+    setPendingOrders(response.data.data.map(order => ({
+      ...order,
+      confirming: false,
+      cancelling: false,
+      confirmed: false,
+      cancelled: false,
+      error: null,
+      selected: false,
+      parsedDate: parseCustomDate(order.order_date) // Add parsed date for sorting
+    })));
+    setSelectedOrders([]);
+    setSelectAll(false);
+  } catch (error) {
+    setError(error.message);
+    showToast(`Failed to load orders: ${error.message}`, 'error');
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Update the filteredAndSortedOrders calculation:
+const filteredAndSortedOrders = pendingOrders
+  .filter(order => {
+    // Search filter
+    const matchesSearch = order.order_id.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Date range filter
+    const orderDate = order.parsedDate;
+    const matchesDateRange = 
+      (!startDate || (orderDate && orderDate >= startDate)) && 
+      (!endDate || (orderDate && orderDate <= endDate));
+    
+    return matchesSearch && matchesDateRange;
+  })
+  .sort((a, b) => {
+    // Sorting by date
+    if (sortOrder === "newest") {
+      return (b.parsedDate?.getTime() || 0) - (a.parsedDate?.getTime() || 0);
+    } else {
+      return (a.parsedDate?.getTime() || 0) - (b.parsedDate?.getTime() || 0);
+    }
+  });
+
+
+
+ 
 
   // Toggle selection for a single order
   const toggleOrderSelection = (orderId) => {
@@ -313,65 +374,71 @@ const PendingOrders = () => {
   };
 
   // Export to PDF
- 
-const exportToPDF = () => {
-  const dataToExport = selectedOrders.length > 0 
-    ? pendingOrders.filter(order => selectedOrders.includes(order.order_id))
-    : pendingOrders;
+  const exportToPDF = () => {
+    const dataToExport = selectedOrders.length > 0 
+      ? pendingOrders.filter(order => selectedOrders.includes(order.order_id))
+      : pendingOrders;
 
-  if (dataToExport.length === 0) {
-    showToast("No orders to export", 'warning');
-    return;
-  }
-
-  // Create new jsPDF instance
-  const doc = new jsPDF();
-
-  // Add title
-  doc.setFontSize(16);
-  doc.text(`Pending Orders Report - ${new Date().toLocaleDateString()}`, 14, 15);
-
-  // Prepare data for the table
-  const headers = [
-    'Order ID', 
-    'Style Number', 
-    'Size', 
-    'Quantity', 
-    'Status', 
-    'Shipping Method', 
-    'Order Date'
-  ];
-  
-  const data = dataToExport.map(order => [
-    order.order_id,
-    order.styleNumber,
-    order.size,
-    order.quantity,
-    order.order_status,
-    order.shipping_method,
-    order.order_date
-  ]);
-
-  // Add the table
-  autoTable(doc, {
-    head: [headers],
-    body: data,
-    startY: 20,
-    theme: 'grid',
-    headStyles: {
-      fillColor: [41, 128, 185],
-      textColor: 255,
-      fontStyle: 'bold'
-    },
-    alternateRowStyles: {
-      fillColor: [245, 245, 245]
+    if (dataToExport.length === 0) {
+      showToast("No orders to export", 'warning');
+      return;
     }
-  });
 
-  // Save the PDF
-  doc.save(`pending_orders_${new Date().toISOString().slice(0,10)}.pdf`);
-  showToast(`Exported ${dataToExport.length} orders to PDF`, 'success');
-};
+    // Create new jsPDF instance
+    const doc = new jsPDF();
+
+    // Add title
+    doc.setFontSize(16);
+    doc.text(`Pending Orders Report - ${new Date().toLocaleDateString()}`, 14, 15);
+
+    // Prepare data for the table
+    const headers = [
+      'Order ID', 
+      'Style Number', 
+      'Size', 
+      'Quantity', 
+      'Status', 
+      'Shipping Method', 
+      'Order Date'
+    ];
+    
+    const data = dataToExport.map(order => [
+      order.order_id,
+      order.styleNumber,
+      order.size,
+      order.quantity,
+      order.order_status,
+      order.shipping_method,
+      order.order_date
+    ]);
+
+    // Add the table
+    autoTable(doc, {
+      head: [headers],
+      body: data,
+      startY: 20,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: 255,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      }
+    });
+
+    // Save the PDF
+    doc.save(`pending_orders_${new Date().toISOString().slice(0,10)}.pdf`);
+    showToast(`Exported ${dataToExport.length} orders to PDF`, 'success');
+  };
+
+  // Clear date filters
+  const clearDateFilters = () => {
+    setStartDate(null);
+    setEndDate(null);
+  };
+
   useEffect(() => {
     fetchPendingOrders();
   }, []);
@@ -415,6 +482,7 @@ const exportToPDF = () => {
             {selectedOrders.length > 0 && (
               <span className="ml-2 text-blue-600">Selected: {selectedOrders.length}</span>
             )}
+            <span className="ml-2">Showing: {filteredAndSortedOrders.length}</span>
           </p>
           <button
             onClick={fetchPendingOrders}
@@ -427,22 +495,72 @@ const exportToPDF = () => {
         </div>
       </div>
 
-      {/* Search and Export Controls */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div className="relative w-full md:w-96">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FiSearch className="text-gray-400" />
+      {/* Search, Date Filter, and Export Controls */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative w-full md:w-96">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiSearch className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search by Order ID..."
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <input
-            type="text"
-            placeholder="Search by Order ID..."
-            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          
+          <div className="flex flex-col md:flex-row gap-2">
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2">
+                <FiCalendar className="text-gray-400 mr-2" />
+                <DatePicker
+                  selected={startDate}
+                  onChange={(date) => setStartDate(date)}
+                  selectsStart
+                  startDate={startDate}
+                  endDate={endDate}
+                  placeholderText="Start Date"
+                  className="w-32 focus:outline-none"
+                />
+              </div>
+              <span className="text-gray-400">to</span>
+              <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2">
+                <FiCalendar className="text-gray-400 mr-2" />
+                <DatePicker
+                  selected={endDate}
+                  onChange={(date) => setEndDate(date)}
+                  selectsEnd
+                  startDate={startDate}
+                  endDate={endDate}
+                  minDate={startDate}
+                  placeholderText="End Date"
+                  className="w-32 focus:outline-none"
+                />
+              </div>
+              {(startDate || endDate) && (
+                <button
+                  onClick={clearDateFilters}
+                  className="text-md font-medium text-gray-500 bg-red-100 py-[10px] px-6 rounded shadow-xs cursor-pointer  hover:text-red-700 hover:bg-red-200"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
         </div>
         
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+        <div className="flex flex-wrap gap-2">
           {selectedOrders.length > 0 && (
             <>
               <button
@@ -503,8 +621,8 @@ const exportToPDF = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredOrders.length > 0 ? (
-                filteredOrders.map((order, index) => (
+              {filteredAndSortedOrders.length > 0 ? (
+                filteredAndSortedOrders.map((order, index) => (
                   <tr key={order.order_id + index} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
@@ -576,7 +694,9 @@ const exportToPDF = () => {
               ) : (
                 <tr>
                   <td colSpan="10" className="px-6 py-4 text-center text-sm text-gray-500">
-                    {searchTerm ? "No matching orders found" : "No pending orders found"}
+                    {searchTerm || startDate || endDate 
+                      ? "No matching orders found for your filters" 
+                      : "No pending orders found"}
                   </td>
                 </tr>
               )}

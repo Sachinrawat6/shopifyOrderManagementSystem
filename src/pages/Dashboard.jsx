@@ -220,7 +220,7 @@ const OrderDashboard = () => {
           >
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-gray-600">Shipped</p>
+                <p className="text-sm font-medium text-gray-600">Shipped Qty </p>
                 <p className="text-3xl font-bold mt-1 text-gray-900">{getStatusCount('shipped')}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   {allOrders.length > 0 ? `${Math.round((getStatusCount('shipped') / allOrders.length) * 100)}% of total` : '0% of total'}
@@ -242,7 +242,7 @@ const OrderDashboard = () => {
           >
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-gray-600">Cancelled</p>
+                <p className="text-sm font-medium text-gray-600">Cancelled Qty </p>
                 <p className="text-3xl font-bold mt-1 text-gray-900">{getStatusCount('cancel')}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   {allOrders.length > 0 ? `${Math.round((getStatusCount('cancel') / allOrders.length) * 100)}% of total` : '0% of total'}
@@ -264,7 +264,7 @@ const OrderDashboard = () => {
           >
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-sm font-medium text-gray-600">Pending Qty </p>
                 <p className="text-3xl font-bold mt-1 text-gray-900">{getPendingOrdersCount()}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   {allOrders.length > 0 ? `${Math.round((getPendingOrdersCount() / allOrders.length) * 100)}% of total` : '0% of total'}
