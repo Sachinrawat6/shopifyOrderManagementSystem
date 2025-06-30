@@ -215,6 +215,9 @@ const OrderUpload = () => {
           const response = await axios.post(`${BASE_URL}/add-to-pending`, pendingPayload);
           if (response.data) {
             setError(prev => `${prev ? `${prev}\n` : ''}Successfully sent ${pendingOrders.length} pending orders.`);
+            window.location.href = "/confirmed";
+
+            
           }
         } catch (err) {
           console.error("API Error:", err.response?.data || err);
@@ -226,7 +229,8 @@ const OrderUpload = () => {
             return {
               ...prev,
               completed,
-              percentage: Math.round((completed / prev.total) * 100)
+              percentage: Math.round((completed / prev.total) * 100),
+              
             };
           });
         }

@@ -139,28 +139,90 @@ const fetchColors = async()=>{
   };
 
   // Batch mark as shipped
-  const handleBatchShip = async () => {
-    if (selectedOrders.length === 0) {
-      toast.warning("Please select orders to mark as shipped");
-      return;
-    }
+  // const handleBatchShip = async () => {
+  //   if (selectedOrders.length === 0) {
+  //     toast.warning("Please select orders to mark as shipped");
+  //     return;
+  //   }
 
-    try {
-      setConfirmedOrders(prev => prev.map(order => 
-        selectedOrders.includes(order.order_id) ? { ...order, shipping: true } : order
-      ));
+  //   try {
+  //     setConfirmedOrders(prev => prev.map(order => 
+  //       selectedOrders.includes(order.order_id) ? { ...order, shipping: true } : order
+  //     ));
 
-      const matchedOrder = confirmedOrders.filter(order => 
-        selectedOrders.includes(order.order_id)
-      );
+  //     const matchedOrder = confirmedOrders.filter(order => 
+  //       selectedOrders.includes(order.order_id)
+  //     );
 
 
     
      
 
-      const promises = matchedOrder.map(order => 
-        axios.post(`${BASE_URL}/add-to-ship`, {
-            order_id: order.order_id,
+  //     const promises = matchedOrder.map(order => 
+  //       axios.post(`${BASE_URL}/add-to-ship`, {
+  //           order_id: order.order_id,
+  //       styleNumber: order.styleNumber,
+  //       size: order.size,
+  //       quantity: order.quantity,
+  //       order_date: order.order_date,
+  //       shipping_method: order.shipping_method,
+  //       order_status: "Shipped",
+  //       contact_number: order.contact_number,
+  //       payment_status: order.payment_status,
+  //       })
+  //     );
+
+  //     const results = await Promise.all(promises);
+  //     const allSuccess = results.every(res => res.data.success);
+
+  //     if (allSuccess) {
+  //       toast.success(`${selectedOrders.length} orders marked as shipped!`);
+  //       fetchConfirmedOrders(); // Refresh data
+  //     } else {
+  //       throw new Error("Some orders failed to update");
+  //     }
+  //   } catch (err) {
+  //     toast.error(`Failed to mark some orders as shipped: ${err.message}`);
+  //     setConfirmedOrders(prev => prev.map(order => 
+  //       selectedOrders.includes(order.order_id) ? { ...order, shipping: false } : order
+  //     ));
+  //   }
+  // };
+
+const handleBatchShip = async () => {
+  if (selectedOrders.length === 0) {
+    toast.warning("Please select orders to mark as shipped");
+    return;
+  }
+
+  try {
+    // UI Update
+    setConfirmedOrders(prev => prev.map(order =>
+      selectedOrders.includes(order.order_id)
+        ? { ...order, shipping: true, error: null }
+        : order
+    ));
+
+    const ordersToShip = selectedOrders.map(orderId =>
+      confirmedOrders.find(order => order.order_id === orderId)
+    ).filter(order => !!order); // remove undefined
+
+    const invalidOrders = ordersToShip.filter(order =>
+      !order.styleNumber || !order.size || !order.quantity || !order.order_date || !order.contact_number
+    );
+
+    if (invalidOrders.length > 0) {
+      console.error("❌ Invalid orders with missing fields:", invalidOrders);
+      toast.error(`${invalidOrders.length} orders skipped due to missing data.`);
+    }
+
+    const validOrders = ordersToShip.filter(order =>
+      order.styleNumber && order.size && order.quantity && order.order_date && order.contact_number
+    );
+
+    const promises = validOrders.map(order =>
+      axios.post(`${BASE_URL}/add-to-ship`, {
+        order_id: order.order_id,
         styleNumber: order.styleNumber,
         size: order.size,
         quantity: order.quantity,
@@ -169,25 +231,40 @@ const fetchColors = async()=>{
         order_status: "Shipped",
         contact_number: order.contact_number,
         payment_status: order.payment_status,
-        })
-      );
+      }).catch(err => ({ error: true, order, message: err?.response?.data?.message || err.message }))
+    );
 
-      const results = await Promise.all(promises);
-      const allSuccess = results.every(res => res.data.success);
+    const results = await Promise.all(promises);
+    const failed = results.filter(res => res.error || res.data?.success === false);
+    const successCount = validOrders.length - failed.length;
 
-      if (allSuccess) {
-        toast.success(`${selectedOrders.length} orders marked as shipped!`);
-        fetchConfirmedOrders(); // Refresh data
-      } else {
-        throw new Error("Some orders failed to update");
-      }
-    } catch (err) {
-      toast.error(`Failed to mark some orders as shipped: ${err.message}`);
-      setConfirmedOrders(prev => prev.map(order => 
-        selectedOrders.includes(order.order_id) ? { ...order, shipping: false } : order
+    if (successCount > 0) {
+      toast.success(`${successCount} orders marked as shipped!`);
+      setTimeout(fetchConfirmedOrders, 1000);
+    }
+
+    if (failed.length > 0) {
+      console.error("❌ Failed orders during API:", failed);
+      toast.error(`${failed.length} orders failed to mark as shipped.`);
+
+      setConfirmedOrders(prev => prev.map(order =>
+        failed.some(f => f.order?.order_id === order.order_id)
+          ? { ...order, shipping: false, error: "Failed to ship" }
+          : order
       ));
     }
-  };
+
+  } catch (error) {
+    console.error("❌ Unexpected ship error:", error);
+    toast.error(`Unexpected error: ${error.message}`);
+    setConfirmedOrders(prev => prev.map(order =>
+      selectedOrders.includes(order.order_id)
+        ? { ...order, shipping: false, error: error.message }
+        : order
+    ));
+  }
+};
+
 
   // Export to CSV
  const exportToCSV = () => {

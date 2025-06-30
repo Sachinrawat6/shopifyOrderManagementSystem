@@ -13,6 +13,7 @@ import "react-datepicker/dist/react-datepicker.css";
 
 const PendingOrders = () => {
   const [pendingOrders, setPendingOrders] = useState([]);
+  const [confirmOrders, setConfirmOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,30 +36,7 @@ const PendingOrders = () => {
     });
   };
 
-  // Fetch pending orders
-  // const fetchPendingOrders = async () => {
-  //   setLoading(true);
-  //   try {
-  //     const response = await axios.get(`${BASE_URL}/pending-orders`);
-  //     setPendingOrders(response.data.data.map(order => ({
-  //       ...order,
-  //       confirming: false,
-  //       cancelling: false,
-  //       confirmed: false,
-  //       cancelled: false,
-  //       error: null,
-  //       selected: false,
-  //       orderDate: new Date(order.order_date) // Convert to Date object for sorting
-  //     })));
-  //     setSelectedOrders([]);
-  //     setSelectAll(false);
-  //   } catch (error) {
-  //     setError(error.message);
-  //     showToast(`Failed to load orders: ${error.message}`, 'error');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+ 
 
   // Add this utility function at the top of your component (outside the PendingOrders function)
 const parseCustomDate = (dateString) => {
@@ -67,6 +45,23 @@ const parseCustomDate = (dateString) => {
   const [day, month, year] = dateString.split('-').map(Number);
   return new Date(year, month - 1, day);
 };
+
+
+// fetching confirm orders 
+
+const fetchConfirmOrder = async()=>{
+  setLoading(true);
+ try {
+   const response = await axios.get(`${BASE_URL}/confirm-orders`);
+   setConfirmOrders(response.data.data);
+ } catch (error) {
+  setError(error.message)
+  showToast( `Failed to load orders : ${error.message}`)
+ }
+ finally{
+  setLoading(false);
+ }
+}
 
 // Inside your PendingOrders component, modify the fetchPendingOrders function:
 const fetchPendingOrders = async () => {
@@ -151,6 +146,12 @@ const filteredAndSortedOrders = pendingOrders
   // Confirm order handler
   const handleConfirm = async (orderId) => {
     try {
+      const checkOrderInConfirmOrders = confirmOrders.length === 0;
+      if(!checkOrderInConfirmOrders){
+        setError(`First mark shipped orders from confirm orders`)
+        showToast(`First mark shipped orders from confirm orders`)
+        return
+      }
       const matchedOrder = pendingOrders.find(order => order.order_id === orderId);
       if (!matchedOrder) throw new Error("Order not found");
 
@@ -441,6 +442,7 @@ const filteredAndSortedOrders = pendingOrders
 
   useEffect(() => {
     fetchPendingOrders();
+    fetchConfirmOrder();
   }, []);
 
   if (loading && pendingOrders.length === 0) {

@@ -8,7 +8,7 @@ import ShippedOrders from "./pages/ShippedOrders";
 import Dashboard from "./pages/Dashboard";
 
 const App = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("confirmed");
 
   return (
     <div className="flex">

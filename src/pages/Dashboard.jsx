@@ -1,11 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FiCheckCircle, FiXCircle, FiRefreshCw, FiSearch, FiCalendar, FiClock, FiPackage } from 'react-icons/fi';
+import {
+  FiCheckCircle,
+  FiXCircle,
+  FiRefreshCw,
+  FiSearch,
+  FiCalendar,
+  FiClock,
+  FiPackage,
+  FiTrendingUp,
+  FiBarChart2,
+  FiPieChart
+} from 'react-icons/fi';
 import { PulseLoader } from 'react-spinners';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { Pie, Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title
+} from 'chart.js';
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const OrderDashboard = () => {
   const BASE_URL = "https://return-inventory-backend.onrender.com/api/v1/shopify";
@@ -17,9 +41,8 @@ const OrderDashboard = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [pendingOrders, setPendingOrders] = useState([]);
-  const [activeTab, setActiveTab] = useState('all'); // 'all', 'shipped', 'cancel', 'pending'
+  const [activeTab, setActiveTab] = useState('all');
 
-  // Function to parse date in DD-MM-YYYY format
   const parseCustomDate = (dateString) => {
     if (!dateString) return null;
     const parts = dateString.split('-');
@@ -36,7 +59,6 @@ const OrderDashboard = () => {
         axios.get(`${BASE_URL}/pending-orders`)
       ]);
       setAllOrders(ordersResponse.data.data);
-      setFilteredOrders(ordersResponse.data.data);
       setPendingOrders(pendingResponse.data.data);
     } catch (err) {
       setError(err.message);
@@ -46,52 +68,48 @@ const OrderDashboard = () => {
     }
   };
 
-  // Apply all filters
-  useEffect(() => {
-    let result = activeTab === 'pending' ? [...pendingOrders] : [...allOrders];
-
-    // Apply status filter for non-pending tabs
-    if (activeTab === 'shipped') {
-      result = result.filter(order => order.order_status?.toLowerCase() === 'shipped');
-    } else if (activeTab === 'cancel') {
-      result = result.filter(order => order.order_status?.toLowerCase() === 'cancel');
-    }
-
-    // Apply search filter
+  const applyFilters = () => {
+    let result = [...allOrders];
     if (searchTerm.trim() !== '') {
       result = result.filter(order =>
-        (order.order_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.order_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.styleNumber?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.size?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.quantity?.toString().includes(searchTerm))
+        order.quantity?.toString().includes(searchTerm)
       );
     }
 
-    // Apply date filter with proper date parsing
     if (startDate || endDate) {
       result = result.filter(order => {
         const orderDate = parseCustomDate(order.order_date) || new Date(order.createdAt);
-        if (!orderDate) return false;
-
-        // Reset time components for date comparison
         const orderDateOnly = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate());
         const startDateOnly = startDate ? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()) : null;
         const endDateOnly = endDate ? new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) : null;
 
-        // If both dates are selected
         if (startDateOnly && endDateOnly) {
           return orderDateOnly >= startDateOnly && orderDateOnly <= endDateOnly;
-        }
-        // If only start date is selected
-        else if (startDateOnly) {
+        } else if (startDateOnly) {
           return orderDateOnly >= startDateOnly;
-        }
-        // If only end date is selected
-        else if (endDateOnly) {
+        } else if (endDateOnly) {
           return orderDateOnly <= endDateOnly;
         }
         return true;
       });
+    }
+    return result;
+  };
+
+  useEffect(() => {
+    const filtered = applyFilters();
+    let result = [...filtered];
+    const pendingIds = new Set(pendingOrders.map(o => o.order_id));
+
+    if (activeTab === 'shipped') {
+      result = result.filter(order => order.order_status?.toLowerCase() === 'shipped');
+    } else if (activeTab === 'cancel') {
+      result = result.filter(order => order.order_status?.toLowerCase() === 'cancel');
+    } else if (activeTab === 'pending') {
+      result = result.filter(order => pendingIds.has(order.order_id));
     }
 
     setFilteredOrders(result);
@@ -101,62 +119,101 @@ const OrderDashboard = () => {
     fetchAllData();
   }, []);
 
-  const resetDateFilters = () => {
-    setStartDate(null);
-    setEndDate(null);
+  const getFilteredCounts = () => {
+    const filtered = applyFilters();
+    const pendingIds = new Set(pendingOrders.map(order => order.order_id));
+
+    return {
+      total: filtered.length,
+      shipped: filtered.filter(order => order.order_status?.toLowerCase() === 'shipped').length,
+      cancelled: filtered.filter(order => order.order_status?.toLowerCase() === 'cancel').length,
+      // pending: filtered.filter(order => pendingIds.has(order.order_id)).length
+      // pending: filtered.filter(order => pendingIds.contains(order.order_id)).length
+      pending:pendingOrders.length
+    };
   };
 
-  const getStatusCount = (status) => {
-    return allOrders.filter(order => order.order_status?.toLowerCase() === status.toLowerCase()).length;
-  };
-
-  const getPendingOrdersCount = () => {
-    return pendingOrders.length;
-  };
-
-  // Format date display to DD-MM-YYYY
   const formatDisplayDate = (date) => {
     if (!date) return 'N/A';
     const d = new Date(date);
     return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;
   };
 
+  const counts = getFilteredCounts();
+
+  const pieData = {
+    labels: ['Shipped', 'Cancelled', 'Pending'],
+    datasets: [
+      {
+        data: [counts.shipped, counts.cancelled, counts.pending],
+        backgroundColor: ['#10B981', '#EF4444', '#F59E0B'],
+        borderColor: ['#059669', '#DC2626', '#D97706'],
+        borderWidth: 1
+      }
+    ]
+  };
+
+  const barData = {
+    labels: ['Shipped', 'Cancelled', 'Pending'],
+    datasets: [
+      {
+        label: 'Orders Count',
+        data: [counts.shipped, counts.cancelled, counts.pending],
+        backgroundColor: ['#10B981', '#EF4444', '#F59E0B'],
+        borderColor: ['#059669', '#DC2626', '#D97706'],
+        borderWidth: 1
+      }
+    ]
+  };
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setStartDate(null);
+    setEndDate(null);
+    setActiveTab('all');
+  };
+
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <PulseLoader color="#4F46E5" size={15} />
-        <p className="mt-4 text-gray-600 text-lg">Loading dashboard...</p>
+      <div className="flex items-center justify-center h-screen">
+        <PulseLoader color="#4F46E5" size={12} />
+        <span className="ml-4 text-gray-600">Loading orders...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen p-6">
-        <div className="max-w-md w-full p-6 bg-red-50 border-l-4 border-red-500 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-red-800">Error Loading Data</h3>
-          <p className="mt-2 text-red-700">{error}</p>
-          <button
-            onClick={fetchAllData}
-            className="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center"
-          >
-            <FiRefreshCw className="mr-2" />
-            Retry
-          </button>
+      <div className="flex items-center justify-center h-screen">
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 max-w-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <FiXCircle className="h-5 w-5 text-red-500" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">Error loading data: {error}</p>
+              <button
+                onClick={fetchAllData}
+                className="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none"
+              >
+                <FiRefreshCw className="mr-1" /> Retry
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <ToastContainer position="top-right" autoClose={5000} />
-      
+
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Order Dashboard</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Order Management Dashboard</h1>
             <p className="text-gray-600 mt-1">
               {activeTab === 'all' && 'Overview of all orders'}
               {activeTab === 'shipped' && 'Shipped orders'}
@@ -164,191 +221,284 @@ const OrderDashboard = () => {
               {activeTab === 'pending' && 'Pending orders'}
             </p>
           </div>
-          
-          <div className="flex flex-col md:flex-row items-stretch md:items-center space-y-2 md:space-y-0 md:space-x-4 w-full md:w-auto mt-4 md:mt-0">
-            <div className="relative flex-grow md:w-64">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiSearch className="text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search orders..."
-                className="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <button
-              onClick={fetchAllData}
-              disabled={loading}
-              className="flex items-center justify-center px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <FiRefreshCw className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-          </div>
+          <button
+            onClick={fetchAllData}
+            className="mt-4 md:mt-0 flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <FiRefreshCw className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh Data
+          </button>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div 
-            className={`p-5 rounded-xl shadow-sm border cursor-pointer transition-all transform hover:scale-[1.02] ${
-              activeTab === 'all' 
-                ? 'bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100' 
-                : 'bg-white border-gray-200 hover:border-indigo-300'
-            }`}
-            onClick={() => setActiveTab('all')}
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Orders Qty</p>
-                <p className="text-3xl font-bold mt-1 text-gray-900">{allOrders.length}</p>
-              </div>
-              <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600">
-                <FiPackage className="text-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 bg-indigo-500 rounded-md p-3">
+                  <FiPackage className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Orders</dt>
+                  <dd className="flex items-baseline">
+                    <div className="text-2xl font-semibold text-gray-900">{counts.total}</div>
+                  </dd>
+                </div>
               </div>
             </div>
           </div>
 
-          <div 
-            className={`p-5 rounded-xl shadow-sm border cursor-pointer transition-all transform hover:scale-[1.02] ${
-              activeTab === 'shipped' 
-                ? 'bg-green-50 border-green-200 ring-2 ring-green-100' 
-                : 'bg-white border-gray-200 hover:border-green-300'
-            }`}
-            onClick={() => setActiveTab('shipped')}
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Shipped Qty </p>
-                <p className="text-3xl font-bold mt-1 text-gray-900">{getStatusCount('shipped')}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {allOrders.length > 0 ? `${Math.round((getStatusCount('shipped') / allOrders.length) * 100)}% of total` : '0% of total'}
-                </p>
-              </div>
-              <div className="p-2 rounded-lg bg-green-100 text-green-600">
-                <FiCheckCircle className="text-xl" />
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
+                  <FiCheckCircle className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dt className="text-sm font-medium text-gray-500 truncate">Shipped</dt>
+                  <dd className="flex items-baseline">
+                    <div className="text-2xl font-semibold text-gray-900">{counts.shipped}</div>
+                    <div className="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                      {counts.total > 0 ? Math.round((counts.shipped / counts.total) * 100) : 0}%
+                    </div>
+                  </dd>
+                </div>
               </div>
             </div>
           </div>
 
-          <div 
-            className={`p-5 rounded-xl shadow-sm border cursor-pointer transition-all transform hover:scale-[1.02] ${
-              activeTab === 'cancel' 
-                ? 'bg-red-50 border-red-200 ring-2 ring-red-100' 
-                : 'bg-white border-gray-200 hover:border-red-300'
-            }`}
-            onClick={() => setActiveTab('cancel')}
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Cancelled Qty </p>
-                <p className="text-3xl font-bold mt-1 text-gray-900">{getStatusCount('cancel')}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {allOrders.length > 0 ? `${Math.round((getStatusCount('cancel') / allOrders.length) * 100)}% of total` : '0% of total'}
-                </p>
-              </div>
-              <div className="p-2 rounded-lg bg-red-100 text-red-600">
-                <FiXCircle className="text-xl" />
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 bg-red-500 rounded-md p-3">
+                  <FiXCircle className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dt className="text-sm font-medium text-gray-500 truncate">Cancelled</dt>
+                  <dd className="flex items-baseline">
+                    <div className="text-2xl font-semibold text-gray-900">{counts.cancelled}</div>
+                    <div className="ml-2 flex items-baseline text-sm font-semibold text-red-600">
+                      {counts.total > 0 ? Math.round((counts.cancelled / counts.total) * 100) : 0}%
+                    </div>
+                  </dd>
+                </div>
               </div>
             </div>
           </div>
 
-          <div 
-            className={`p-5 rounded-xl shadow-sm border cursor-pointer transition-all transform hover:scale-[1.02] ${
-              activeTab === 'pending' 
-                ? 'bg-yellow-50 border-yellow-200 ring-2 ring-yellow-100' 
-                : 'bg-white border-gray-200 hover:border-yellow-300'
-            }`}
-            onClick={() => setActiveTab('pending')}
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Pending Qty </p>
-                <p className="text-3xl font-bold mt-1 text-gray-900">{getPendingOrdersCount()}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {allOrders.length > 0 ? `${Math.round((getPendingOrdersCount() / allOrders.length) * 100)}% of total` : '0% of total'}
-                </p>
-              </div>
-              <div className="p-2 rounded-lg bg-yellow-100 text-yellow-600">
-                <FiClock className="text-xl" />
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 bg-yellow-500 rounded-md p-3">
+                  <FiClock className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dt className="text-sm font-medium text-gray-500 truncate">Pending</dt>
+                  <dd className="flex items-baseline">
+                    <div className="text-2xl font-semibold text-gray-900">{counts.pending}</div>
+                    <div className="ml-2 flex items-baseline text-sm font-semibold text-yellow-600">
+                      {counts.total > 0 ? Math.round((counts.pending / counts.total) * 100) : 0}%
+                    </div>
+                  </dd>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Date Filter */}
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <h3 className="text-lg font-medium text-gray-900 mb-2 md:mb-0">Filter Orders</h3>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-              <div className="relative flex-grow">
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white p-4 shadow rounded-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Order Status Distribution</h2>
+              <FiPieChart className="text-indigo-500" />
+            </div>
+            <div className="h-64">
+              <Pie 
+                data={pieData} 
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'right',
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          const label = context.label || '';
+                          const value = context.raw || 0;
+                          const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                          const percentage = Math.round((value / total) * 100);
+                          return `${label}: ${value} (${percentage}%)`;
+                        }
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="bg-white p-4 shadow rounded-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Order Status Comparison</h2>
+              <FiBarChart2 className="text-indigo-500" />
+            </div>
+            <div className="h-64">
+              <Bar 
+                data={barData} 
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      ticks: {
+                        precision: 0
+                      }
+                    }
+                  },
+                  plugins: {
+                    legend: {
+                      display: false
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          return `${context.dataset.label}: ${context.raw}`;
+                        }
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white shadow rounded-lg p-4 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex-1">
+              <label htmlFor="search" className="sr-only">Search</label>
+              <div className="relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiCalendar className="text-gray-400" />
+                  <FiSearch className="h-5 w-5 text-gray-400" />
                 </div>
+                <input
+                  type="text"
+                  name="search"
+                  id="search"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border"
+                  placeholder="Search orders..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex items-center">
                 <DatePicker
                   selected={startDate}
-                  onChange={date => setStartDate(date)}
+                  onChange={(date) => setStartDate(date)}
                   selectsStart
                   startDate={startDate}
                   endDate={endDate}
                   placeholderText="Start Date"
-                  className="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                   dateFormat="dd-MM-yyyy"
                 />
               </div>
-              <div className="relative flex-grow">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiCalendar className="text-gray-400" />
-                </div>
+              <div className="flex items-center">
                 <DatePicker
                   selected={endDate}
-                  onChange={date => setEndDate(date)}
+                  onChange={(date) => setEndDate(date)}
                   selectsEnd
                   startDate={startDate}
                   endDate={endDate}
                   minDate={startDate}
                   placeholderText="End Date"
-                  className="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                   dateFormat="dd-MM-yyyy"
                 />
               </div>
-              {(startDate || endDate) && (
-                <button 
-                  onClick={resetDateFilters}
-                  className="px-4 py-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                >
-                  Clear Dates
-                </button>
-              )}
+              <button
+                onClick={resetFilters}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Reset Filters
+              </button>
             </div>
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`${activeTab === 'all' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              All Orders
+            </button>
+            <button
+              onClick={() => setActiveTab('shipped')}
+              className={`${activeTab === 'shipped' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Shipped
+            </button>
+            <button
+              onClick={() => setActiveTab('cancel')}
+              className={`${activeTab === 'cancel' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Cancelled
+            </button>
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`${activeTab === 'pending' ? 'border-yellow-500 text-yellow-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Pending
+            </button>
+          </nav>
+        </div>
+
         {/* Orders Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white shadow rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Style Number</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated At</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Order ID
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Style Number
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Size
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Quantity
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Order Date
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Updated At
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredOrders.length > 0 ? (
                   filteredOrders.map((order, index) => (
-                    <tr 
-                      key={`${order.order_id}-${index}`} 
-                      className="hover:bg-gray-50 transition-colors"
-                    >
+                    <tr key={`${order.order_id}-${index}`} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <span className="inline-block min-w-[120px]">{order.order_id}</span>
+                        {order.order_id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {order.styleNumber || 'N/A'}
@@ -359,15 +509,11 @@ const OrderDashboard = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {order.quantity || 'N/A'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          order.order_status?.toLowerCase() === 'shipped' 
-                            ? 'bg-green-100 text-green-800' 
-                            : order.order_status?.toLowerCase() === 'cancel' 
-                              ? 'bg-red-100 text-red-800' 
-                              : activeTab === 'pending'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-800'
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          order.order_status?.toLowerCase() === 'shipped' ? 'bg-green-100 text-green-800' :
+                          order.order_status?.toLowerCase() === 'cancel' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
                         }`}>
                           {order.order_status || 'Pending'}
                         </span>
@@ -376,34 +522,14 @@ const OrderDashboard = () => {
                         {order.order_date || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order.createdAt ? formatDisplayDate(order.createdAt) : 'N/A'}
+                        {formatDisplayDate(order.createdAt)}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="px-6 py-8 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <FiPackage className="text-gray-400 text-4xl mb-2" />
-                        <h4 className="text-lg font-medium text-gray-900">No orders found</h4>
-                        <p className="text-gray-500 mt-1">
-                          {searchTerm || startDate || endDate || activeTab !== 'all' 
-                            ? "Try adjusting your filters" 
-                            : "No orders in the system"}
-                        </p>
-                        {(searchTerm || startDate || endDate) && (
-                          <button
-                            onClick={() => {
-                              setSearchTerm('');
-                              resetDateFilters();
-                              setActiveTab('all');
-                            }}
-                            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                          >
-                            Clear All Filters
-                          </button>
-                        )}
-                      </div>
+                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                      No orders found matching your criteria
                     </td>
                   </tr>
                 )}

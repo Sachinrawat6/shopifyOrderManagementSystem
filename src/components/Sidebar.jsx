@@ -3,12 +3,12 @@ import { FiUpload, FiClock, FiCheckCircle, FiTruck, FiSettings, FiLogOut, FiX, F
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const menuItems = [
+    { id: "upload", label: "Upload Orders", icon: <FiUpload className="text-lg" /> },
+    { id: "confirmed", label: "Confirmed Orders", icon: <FiCheckCircle className="text-lg" /> },
+    { id: "pending", label: "Pending Orders", icon: <FiClock className="text-lg" /> },
+    { id: "cancel", label: "Cancelled Orders", icon: <FiX className="text-lg" /> },
+    { id: "shipped", label: "All Orders", icon: <FiBox className="text-lg" /> },
     { id: "dashboard", label: "Dashboard", icon: <FiCodesandbox className="text-lg" /> },
-      { id: "pending", label: "Pending Orders", icon: <FiClock className="text-lg" /> },
-      { id: "confirmed", label: "Confirmed Orders", icon: <FiCheckCircle className="text-lg" /> },
-      { id: "cancel", label: "Cancelled Orders", icon: <FiX className="text-lg" /> },
-      { id: "shipped", label: "All Orders", icon: <FiBox className="text-lg" /> },
-      { id: "upload", label: "Upload Orders", icon: <FiUpload className="text-lg" /> },
   ];
 
   return (
