@@ -299,7 +299,7 @@ const handleBatchShip = async () => {
   // Export to PDF
   const exportToPDF = () => {
     const dataToExport = selectedOrders.length > 0 
-      ? confirmedOrders.filter(order => selectedOrders.includes(order.order_id))
+      ? confirmedOrders.filter(order => selectedOrders.includes(order.order_id)) && confirmedOrders.filter(order => !(order.order_status?.toLowerCase().includes("express shipping")) )
       : confirmedOrders;
 
     if (dataToExport.length === 0) {
@@ -342,6 +342,53 @@ const handleBatchShip = async () => {
     doc.save(`confirmed_orders_${new Date().toISOString().slice(0,10)}.pdf`);
     toast.success(`Exported ${dataToExport.length} orders to PDF`);
   };
+
+
+  const exportShippingOrderToPDF = () => {
+  
+    const dataToExport = confirmedOrders.filter(order => order?.order_status?.toLowerCase().includes("express shipping")); 
+
+    if (dataToExport.length === 0) {
+      toast.warning("No orders to export");
+      return;
+    }
+
+    const doc = new jsPDF();
+    const title = `Confirmed Orders Report - ${new Date().toLocaleDateString()}`;
+    const headers = [
+      ['Order ID', 'Style Number', 'Size', 'Quantity', 'Status', 'Shipping Method', 'Order Date']
+    ];
+    
+    const data = dataToExport.map(order => [
+      order.order_id,
+      order.styleNumber,
+      order.size,
+      order.quantity,
+      order.order_status,
+      order.shipping_method,
+      order.order_date
+    ]);
+
+    doc.text(title, 14, 15);
+    autoTable(doc, {
+      head: headers,
+      body: data,
+      startY: 20,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: 255,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      }
+    });
+
+    doc.save(`expressOrders${new Date().toISOString().slice(0,10)}.pdf`);
+    toast.success(`Exported ${dataToExport.length} orders to PDF`);
+  };
+
 
 
 
@@ -441,7 +488,14 @@ const handleBatchShip = async () => {
             className="flex items-center px-4 py-2 bg-purple-100 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-200 cursor-pointer  transition-colors"
           >
             <FiDownload className="mr-2" />
-            Export to PDF
+            Standard Order PDF
+          </button>
+           <button
+            onClick={exportShippingOrderToPDF}
+            className="flex items-center px-4 py-2 bg-green-100 text-green-700 border border-green-200 rounded-lg hover:bg-green-200 cursor-pointer  transition-colors"
+          >
+            <FiDownload className="mr-2" />
+            Shipping Order PDF
           </button>
 
           

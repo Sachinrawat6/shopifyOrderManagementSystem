@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FiCheckCircle, FiRefreshCw, FiSearch } from 'react-icons/fi';
+import { FiBox, FiCheckCircle, FiRefreshCw, FiSearch, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { PulseLoader } from 'react-spinners';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,6 +12,8 @@ const ShippedOrders = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 50;
 
   const fetchShippedOrder = async () => {
     setLoading(true);
@@ -31,6 +33,7 @@ const ShippedOrders = () => {
   useEffect(() => {
     if (searchTerm.trim() === '') {
       setFilteredOrders(shippedOrders);
+      setCurrentPage(1); // Reset to first page when search is cleared
     } else {
       const filtered = shippedOrders.filter(order =>
         order.order_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -39,12 +42,21 @@ const ShippedOrders = () => {
         (order.quantity && order.quantity.toString().includes(searchTerm))
       );
       setFilteredOrders(filtered);
+      setCurrentPage(1); // Reset to first page when new search is performed
     }
   }, [searchTerm, shippedOrders]);
 
   useEffect(() => {
     fetchShippedOrder();
   }, []);
+
+  // Get current orders for pagination
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   if (loading) {
     return (
@@ -75,7 +87,7 @@ const ShippedOrders = () => {
       
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-          <FiCheckCircle className="mr-2 text-green-500" />
+          <FiBox className="mr-2 text-blue-500" />
           All Orders
         </h2>
         <div className="flex items-center space-x-4">
@@ -117,8 +129,8 @@ const ShippedOrders = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredOrders.length > 0 ? (
-                filteredOrders.map((order, index) => (
+              {currentOrders.length > 0 ? (
+                currentOrders.map((order, index) => (
                   <tr key={order.order_id + index} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {order.order_id}
@@ -132,7 +144,7 @@ const ShippedOrders = () => {
                     <td className="px-6 py-4 text-sm text-gray-500">
                       <div className="font-medium">{order.quantity}</div>
                     </td>
-                     <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-gray-500">
                       <div className="font-medium">{order.order_status}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -153,6 +165,72 @@ const ShippedOrders = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {filteredOrders.length > ordersPerPage && (
+          <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{indexOfFirstOrder + 1}</span> to{' '}
+                  <span className="font-medium">
+                    {Math.min(indexOfLastOrder, filteredOrders.length)}
+                  </span>{' '}
+                  of <span className="font-medium">{filteredOrders.length}</span> results
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => paginate(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <span className="sr-only">Previous</span>
+                    <FiChevronLeft className="h-5 w-5" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                    <button
+                      key={number}
+                      onClick={() => paginate(number)}
+                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                        currentPage === number
+                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      {number}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => paginate(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <span className="sr-only">Next</span>
+                    <FiChevronRight className="h-5 w-5" />
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -131,15 +131,27 @@ const OrderUpload = () => {
     // Initialize progress
     const confirmedOrders = data.filter(
       (row) =>
-        row["Tags"]?.includes("COD Confirmed") ||
+        row["Tags"]?.toLowerCase().includes("cod confirmed") ||
+      row["Tags"]?.toLowerCase().includes("express shipping") ||
         row["Financial Status"]?.toLowerCase() === "paid"
+
     );
 
     const pendingOrders = data.filter(
       (row) =>
         !row["Tags"]?.includes("COD Confirmed") &&
-        row["Financial Status"]?.toLowerCase() !== "paid"
+        row["Financial Status"]?.toLowerCase() !== "paid" &&
+        !row["Tags"]?.toLowerCase().includes("cancelled") &&
+        !row["Tags"]?.toLowerCase().includes("express shipping")
+
     );
+
+     const preCancelledOrder = data.filter(
+      (row) =>
+        row["Tags"]?.toLowerCase().includes("cancelled") 
+    );
+
+
 
     const totalOperations = confirmedOrders.length + (pendingOrders.length > 0 ? 1 : 0);
     setProgress({
@@ -211,11 +223,15 @@ const OrderUpload = () => {
           }))
         };
 
+
+
+        
+
         try {
           const response = await axios.post(`${BASE_URL}/add-to-pending`, pendingPayload);
           if (response.data) {
             setError(prev => `${prev ? `${prev}\n` : ''}Successfully sent ${pendingOrders.length} pending orders.`);
-            window.location.href = "/confirmed";
+            window.location.reload
 
             
           }
@@ -236,17 +252,236 @@ const OrderUpload = () => {
         }
       }
 
-      setError(prev => `Processed ${confirmedOrders.length} confirmed and ${pendingOrders.length} pending orders.${prev ? ` ${prev}` : ''}`);
+      // send cancelled orders to all orders
+      if (preCancelledOrder.length > 0) {
+  const preCancelledOrderPayload = preCancelledOrder
+    .map(order => ({
+      order_id: order["Name"],
+      styleNumber: Number(order["Lineitem sku"]?.split("-")[0]) || 0,
+      size: extractSize(order["Lineitem sku"]),
+      quantity: Number(order["Lineitem quantity"]) || 0,
+      order_date: formatDate(order["Created at"]) || formatDate(new Date()),
+      shipping_method: order["Shipping Method"] || "NA",
+      order_status: order["Tags"] || "NA",
+      contact_number: order["Billing Phone"]?.toString() || "NA",
+      payment_status: order["Financial Status"] || "NA",
+    }))
+    .filter(order =>
+      order.order_id && order.styleNumber && order.size && order.quantity && order.order_date
+    ); // Optional: Filter out invalid orders
+
+  if (preCancelledOrderPayload.length === 0) {
+    setError("No valid pre-cancelled orders to send.");
+    return;
+  }
+
+  try {
+    const response = await axios.post(`${BASE_URL}/pre-cancelled`, preCancelledOrderPayload); // ⬅️ Note: send array directly
+    if (response.data) {
+      setError(prev => `${prev ? `${prev}\n` : ''}Successfully sent ${preCancelledOrderPayload.length} precancelled orders.`);
+    }
+  } catch (err) {
+    console.error("API Error:", err.response?.data || err);
+    setError(`Failed to process cancelled orders: ${err.response?.data?.message || err.message}`);
+  } finally {
+    setProgress(prev => {
+      const completed = prev.completed + 1;
+      return {
+        ...prev,
+        completed,
+        percentage: Math.round((completed / prev.total) * 100),
+      };
+    });
+    // window.location.reload();
+  }
+}
+
+
+
+
+ 
+       
+      setError(prev => `Processed ${confirmedOrders.length} confirmed  ${pendingOrders.length} pending orders.${prev ? ` ${prev}` : ''} and ${preCancelledOrder.length} cancel orders.${prev ? ` ${prev}` : ''}`);
 
     } catch (err) {
       console.error("API Error:", err.response?.data || err);
       setError(`Failed to process orders: ${err.response?.data?.message || err.message}`);
     } finally {
       setSending(false);
+      setData([]);
     }
   };
 
   // Helper function to format date as DD-MM-YYYY
+  
+//   const sendOrdersToBackend = async () => {
+//   if (data.length === 0) {
+//     setError("No data to send");
+//     return;
+//   }
+
+//   setSending(true);
+//   setError("");
+
+//   const confirmedOrders = data.filter(
+//     (row) =>
+//       row["Tags"]?.includes("COD Confirmed") ||
+//       row["Financial Status"]?.toLowerCase() === "paid"
+//   );
+
+//   const pendingOrders = data.filter(
+//     (row) =>
+//       !row["Tags"]?.includes("COD Confirmed") &&
+//       row["Financial Status"]?.toLowerCase() !== "paid" &&
+//       !row["Tags"]?.toLowerCase().includes("cancelled")
+//   );
+
+//   const preCancelledOrder = data.filter(
+//     (row) => row["Tags"]?.toLowerCase().includes("cancelled")
+//   );
+
+//   const totalOperations =
+//     confirmedOrders.length +
+//     (pendingOrders.length > 0 ? 1 : 0) +
+//     (preCancelledOrder.length > 0 ? 1 : 0);
+
+//   setProgress({
+//     total: totalOperations,
+//     completed: 0,
+//     percentage: 0
+//   });
+
+//   try {
+//     // ✅ Confirmed Orders
+//     for (const order of confirmedOrders) {
+//       const styleNumber = Number(order["Lineitem sku"]?.split("-")[0]) || 0;
+//       const size = extractSize(order["Lineitem sku"]);
+//       const quantity = Number(order["Lineitem quantity"]) || 0;
+//       const order_date = formatDate(order["Created at"]) || formatDate(new Date());
+//       const order_id = order["Name"];
+//       const shipping_method = order["Shipping Method"] || "NA";
+//       const order_status = order["Tags"] || "NA";
+//       const contact_number = order["Billing Phone"]?.toString() || "NA";
+//       const payment_status = order["Financial Status"] || "NA";
+
+//       if (!order_id || !styleNumber || !size || !quantity || !order_date) continue;
+
+//       const singlePayload = {
+//         order_id,
+//         styleNumber,
+//         size,
+//         order_date,
+//         quantity,
+//         shipping_method,
+//         order_status,
+//         contact_number,
+//         payment_status
+//       };
+
+//       try {
+//         await axios.post(`${BASE_URL}/add-to-confirm`, singlePayload);
+//       } catch (err) {
+//         console.error("Failed to confirm order:", order_id, err.response?.data || err.message);
+//         setError(prev => `${prev ? `${prev}\n` : ''}Failed to confirm ${order_id}: ${err.response?.data?.message || err.message}`);
+//       } finally {
+//         setProgress(prev => {
+//           const completed = prev.completed + 1;
+//           return {
+//             ...prev,
+//             completed,
+//             percentage: Math.round((completed / prev.total) * 100)
+//           };
+//         });
+//       }
+//     }
+
+//     // ✅ Pending Orders
+//     if (pendingOrders.length > 0) {
+//       const pendingPayload = {
+//         orders: pendingOrders.map(order => ({
+//           order_id: order["Name"],
+//           styleNumber: Number(order["Lineitem sku"]?.split("-")[0]) || 0,
+//           size: extractSize(order["Lineitem sku"]),
+//           quantity: Number(order["Lineitem quantity"]) || 0,
+//           order_date: formatDate(order["Created at"]) || formatDate(new Date()),
+//           shipping_method: order["Shipping Method"] || "NA",
+//           order_status: order["Tags"] || "NA",
+//           contact_number: order["Billing Phone"]?.toString() || "NA",
+//           payment_status: order["Financial Status"] || "NA",
+//         }))
+//       };
+
+//       try {
+//         const response = await axios.post(`${BASE_URL}/add-to-pending`, pendingPayload);
+//         if (response.data) {
+//           setError(prev => `${prev ? `${prev}\n` : ''}Successfully sent ${pendingOrders.length} pending orders.`);
+//         }
+//       } catch (err) {
+//         console.error("Pending order error:", err.response?.data || err);
+//         setError(prev => `${prev ? `${prev}\n` : ''}Failed to process pending orders: ${err.response?.data?.message || err.message}`);
+//       } finally {
+//         setProgress(prev => {
+//           const completed = prev.completed + 1;
+//           return {
+//             ...prev,
+//             completed,
+//             percentage: Math.round((completed / prev.total) * 100)
+//           };
+//         });
+//       }
+//     }
+
+//     // ✅ Cancelled Orders
+//     if (preCancelledOrder.length > 0) {
+//       const cancelPayload = {
+//         orders: preCancelledOrder.map(order => ({
+//           order_id: order["Name"],
+//           styleNumber: Number(order["Lineitem sku"]?.split("-")[0]) || 0,
+//           size: extractSize(order["Lineitem sku"]),
+//           quantity: Number(order["Lineitem quantity"]) || 0,
+//           order_date: formatDate(order["Created at"]) || formatDate(new Date()),
+//           shipping_method: order["Shipping Method"] || "NA",
+//           order_status: order["Tags"] || "NA",
+//           contact_number: order["Billing Phone"]?.toString() || "NA",
+//           payment_status: order["Financial Status"] || "NA",
+//         }))
+//       };
+
+//       try {
+//         const response = await axios.post(`${BASE_URL}/pre-cancelled`, cancelPayload);
+//         if (response.data) {
+//           setError(prev => `${prev ? `${prev}\n` : ''}Successfully sent ${preCancelledOrder.length} cancelled orders.`);
+//         }
+//       } catch (err) {
+//         console.error("Cancelled order error:", err.response?.data || err);
+//         setError(prev => `${prev ? `${prev}\n` : ''}Failed to process pre cancelled orders: ${err.response?.data?.message || err.message}`);
+//       } finally {
+//         setProgress(prev => {
+//           const completed = prev.completed + 1;
+//           return {
+//             ...prev,
+//             completed,
+//             percentage: Math.round((completed / prev.total) * 100)
+//           };
+//         });
+//       }
+//     }
+
+//     // ✅ Final Summary
+//     setError(prev =>
+//       `Processed ${confirmedOrders.length} confirmed, ${pendingOrders.length} pending, and ${preCancelledOrder.length} cancelled orders.${prev ? `\n${prev}` : ''}`
+//     );
+
+//   } catch (err) {
+//     console.error("Global API Error:", err.response?.data || err);
+//     setError(`Failed to process orders: ${err.response?.data?.message || err.message}`);
+//   } finally {
+//     setSending(false);
+//   }
+// };
+
+  
+  
   const formatDate = (dateString) => {
     if (!dateString) return "";
     
@@ -349,7 +584,7 @@ const OrderUpload = () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                   <div className="flex items-center">
                     <FiCheckCircle className="text-green-500 mr-2" />
@@ -357,7 +592,8 @@ const OrderUpload = () => {
                   </div>
                   <p className="text-2xl font-bold mt-2">
                     {data.filter(row => 
-                      row["Tags"]?.includes("COD Confirmed") || 
+                      row["Tags"]?.toLowerCase().includes("cod confirmed") || 
+                      row["Tags"]?.toLowerCase().includes("express shipping") || 
                       row["Financial Status"]?.toLowerCase() === "paid"
                     ).length}
                   </p>
@@ -373,12 +609,31 @@ const OrderUpload = () => {
                   </div>
                   <p className="text-2xl font-bold mt-2">
                     {data.filter(row => 
-                      !row["Tags"]?.includes("COD Confirmed") && 
-                      row["Financial Status"]?.toLowerCase() !== "paid"
+                      !row["Tags"]?.toLowerCase().includes("cod confirmed") && 
+                      row["Financial Status"]?.toLowerCase() !== "paid"&&
+                      !row["Tags"]?.toLowerCase().includes("cancelled") &&
+                      !row["Tags"]?.toLowerCase().includes("express shipping") 
                     ).length}
                   </p>
                   <p className="text-sm text-gray-600 mt-1">
                     (Not confirmed and not paid)
+                  </p>
+                </div>
+
+
+                 <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                  <div className="flex items-center">
+                    <FiClock className="text-red-500 mr-2" />
+                    <span className="font-medium">PreCancelled Orders</span>
+                  </div>
+                  <p className="text-2xl font-bold mt-2">
+                    {data.filter(row => 
+                      row["Tags"]?.toLowerCase().includes("cancelled") 
+                      
+                    ).length}
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    (Customer cancelled)
                   </p>
                 </div>
               </div>

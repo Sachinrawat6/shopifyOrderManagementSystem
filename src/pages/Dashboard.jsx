@@ -41,6 +41,7 @@ const OrderDashboard = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [pendingOrders, setPendingOrders] = useState([]);
+  const [preCancelledOrders, setPreCancelledOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
 
   const parseCustomDate = (dateString) => {
@@ -54,12 +55,14 @@ const OrderDashboard = () => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [ordersResponse, pendingResponse] = await Promise.all([
+      const [ordersResponse, pendingResponse,preCancelledResponse] = await Promise.all([
         axios.get(`${BASE_URL}/all-orders`),
-        axios.get(`${BASE_URL}/pending-orders`)
+        axios.get(`${BASE_URL}/pending-orders`),
+        axios.get(`${BASE_URL}/pre-cancelled`)
       ]);
       setAllOrders(ordersResponse.data.data);
       setPendingOrders(pendingResponse.data.data);
+      setPreCancelledOrders(preCancelledResponse.data.data)
     } catch (err) {
       setError(err.message);
       toast.error(`Failed to load data: ${err.message}`);
@@ -129,7 +132,8 @@ const OrderDashboard = () => {
       cancelled: filtered.filter(order => order.order_status?.toLowerCase() === 'cancel').length,
       // pending: filtered.filter(order => pendingIds.has(order.order_id)).length
       // pending: filtered.filter(order => pendingIds.contains(order.order_id)).length
-      pending:pendingOrders.length
+      pending:pendingOrders.length,
+      preCancelled:preCancelledOrders.length,
     };
   };
 
@@ -231,7 +235,7 @@ const OrderDashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <div className="flex items-center">
@@ -241,7 +245,7 @@ const OrderDashboard = () => {
                 <div className="ml-5 w-0 flex-1">
                   <dt className="text-sm font-medium text-gray-500 truncate">Total Orders</dt>
                   <dd className="flex items-baseline">
-                    <div className="text-2xl font-semibold text-gray-900">{counts.total}</div>
+                    <div className="text-2xl font-semibold text-gray-900">{counts.total + counts.pending + counts.preCancelled}</div>
                   </dd>
                 </div>
               </div>
@@ -286,6 +290,25 @@ const OrderDashboard = () => {
             </div>
           </div>
 
+              <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 bg-red-500 rounded-md p-3">
+                  <FiXCircle className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dt className="text-sm font-medium text-gray-500 truncate"> Pre Cancelled</dt>
+                  <dd className="flex items-baseline">
+                    <div className="text-2xl font-semibold text-gray-900">{counts.preCancelled}</div>
+                    <div className="ml-2 flex items-baseline text-sm font-semibold text-red-600">
+                      {counts.total > 0 ? Math.round((counts.preCancelled / counts.total) * 100) : 0}%
+                    </div>
+                  </dd>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <div className="flex items-center">
@@ -305,6 +328,7 @@ const OrderDashboard = () => {
             </div>
           </div>
         </div>
+        
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

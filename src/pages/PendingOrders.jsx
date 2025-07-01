@@ -563,7 +563,7 @@ const filteredAndSortedOrders = pendingOrders
         </div>
         
         <div className="flex flex-wrap gap-2">
-          {selectedOrders.length > 0 && (
+          {/* {selectedOrders.length > 0 && (
             <>
               <button
                 onClick={handleBatchConfirm}
@@ -580,7 +580,7 @@ const filteredAndSortedOrders = pendingOrders
                 Cancel Selected ({selectedOrders.length})
               </button>
             </>
-          )}
+          )} */}
           <button
             onClick={exportToCSV}
             className="flex items-center px-4 py-2 bg-blue-100 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-200 transition-colors"

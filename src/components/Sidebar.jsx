@@ -7,6 +7,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: "confirmed", label: "Confirmed Orders", icon: <FiCheckCircle className="text-lg" /> },
     { id: "pending", label: "Pending Orders", icon: <FiClock className="text-lg" /> },
     { id: "cancel", label: "Cancelled Orders", icon: <FiX className="text-lg" /> },
+    { id: "preCancelled", label: "Pre Cancelled", icon: <FiX className="text-lg" /> },
     { id: "shipped", label: "All Orders", icon: <FiBox className="text-lg" /> },
     { id: "dashboard", label: "Dashboard", icon: <FiCodesandbox className="text-lg" /> },
   ];
