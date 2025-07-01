@@ -495,7 +495,7 @@ const handleBatchShip = async () => {
             className="flex items-center px-4 py-2 bg-green-100 text-green-700 border border-green-200 rounded-lg hover:bg-green-200 cursor-pointer  transition-colors"
           >
             <FiDownload className="mr-2" />
-            Shipping Order PDF
+            Express Order PDF
           </button>
 
           
