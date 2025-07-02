@@ -355,7 +355,7 @@ const handleBatchShip = async () => {
     }
 
     const doc = new jsPDF();
-    const title = `Confirmed Orders Report - ${new Date().toLocaleDateString()} Total orders : ${dataToExport.length}`;
+    const title = `Express Orders Report - ${new Date().toLocaleDateString()} Total orders : ${dataToExport.length}`;
     const headers = [
       ['Sr.No','Order ID', 'Style Number', 'Size', 'Quantity', 'Status', 'Shipping Method', 'Order Date']
     ];
