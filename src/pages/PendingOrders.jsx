@@ -146,6 +146,8 @@ const filteredAndSortedOrders = pendingOrders
   // Confirm order handler
   const handleConfirm = async (orderId) => {
     try {
+       const confirm = window.confirm("Are you sure want to confirm this order.");
+      if(!confirm) return
       const checkOrderInConfirmOrders = confirmOrders.length === 0;
       if(!checkOrderInConfirmOrders){
         setError(`First mark shipped orders from confirm orders`)
@@ -196,6 +198,8 @@ const filteredAndSortedOrders = pendingOrders
   // Cancel order handler
   const handleCancel = async (orderId) => {
     try {
+      const confirm = window.confirm("Are you sure want to cancel this order.");
+      if(!confirm) return
       const matchedOrder = pendingOrders.find(order => order.order_id === orderId);
       if (!matchedOrder) throw new Error("Order not found");
 
@@ -390,10 +394,11 @@ const filteredAndSortedOrders = pendingOrders
 
     // Add title
     doc.setFontSize(16);
-    doc.text(`Pending Orders Report - ${new Date().toLocaleDateString()}`, 14, 15);
+    doc.text(`Pending Orders Report - ${new Date().toLocaleDateString()} Total orders : ${dataToExport.length}`, 14, 15);
 
     // Prepare data for the table
     const headers = [
+      'Sr.No',
       'Order ID', 
       'Style Number', 
       'Size', 
@@ -403,7 +408,8 @@ const filteredAndSortedOrders = pendingOrders
       'Order Date'
     ];
     
-    const data = dataToExport.map(order => [
+    const data = dataToExport.map((order,i) => [
+      i+1,
       order.order_id,
       order.styleNumber,
       order.size,
