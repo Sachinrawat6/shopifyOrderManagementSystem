@@ -1,13 +1,22 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { FiRefreshCw, FiCheck, FiX, FiClock, FiAlertCircle, FiSearch, FiDownload, FiCalendar } from "react-icons/fi";
+import {
+  FiRefreshCw,
+  FiCheck,
+  FiX,
+  FiClock,
+  FiAlertCircle,
+  FiSearch,
+  FiDownload,
+  FiCalendar,
+} from "react-icons/fi";
 import { PulseLoader } from "react-spinners";
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import * as FileSaver from 'file-saver';
-import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import * as FileSaver from "file-saver";
+import * as XLSX from "xlsx";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -22,10 +31,11 @@ const PendingOrders = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [sortOrder, setSortOrder] = useState("oldest"); // "newest" or "oldest"
-  const BASE_URL = "https://return-inventory-backend.onrender.com/api/v1/shopify";
+  const BASE_URL =
+    "https://return-inventory-backend.onrender.com/api/v1/shopify";
 
   // Toast notification helper
-  const showToast = (message, type = 'info') => {
+  const showToast = (message, type = "info") => {
     toast[type](message, {
       position: "top-right",
       autoClose: 5000,
@@ -36,94 +46,92 @@ const PendingOrders = () => {
     });
   };
 
- 
-
   // Add this utility function at the top of your component (outside the PendingOrders function)
-const parseCustomDate = (dateString) => {
-  if (!dateString) return null;
-  
-  const [day, month, year] = dateString.split('-').map(Number);
-  return new Date(year, month - 1, day);
-};
+  const parseCustomDate = (dateString) => {
+    if (!dateString) return null;
 
+    const [day, month, year] = dateString.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  };
 
-// fetching confirm orders 
+  // fetching confirm orders
 
-const fetchConfirmOrder = async()=>{
-  setLoading(true);
- try {
-   const response = await axios.get(`${BASE_URL}/confirm-orders`);
-   setConfirmOrders(response.data.data);
- } catch (error) {
-  setError(error.message)
-  showToast( `Failed to load orders : ${error.message}`)
- }
- finally{
-  setLoading(false);
- }
-}
-
-// Inside your PendingOrders component, modify the fetchPendingOrders function:
-const fetchPendingOrders = async () => {
-  setLoading(true);
-  try {
-    const response = await axios.get(`${BASE_URL}/pending-orders`);
-    setPendingOrders(response.data.data.map(order => ({
-      ...order,
-      confirming: false,
-      cancelling: false,
-      confirmed: false,
-      cancelled: false,
-      error: null,
-      selected: false,
-      parsedDate: parseCustomDate(order.order_date) // Add parsed date for sorting
-    })));
-    setSelectedOrders([]);
-    setSelectAll(false);
-  } catch (error) {
-    setError(error.message);
-    showToast(`Failed to load orders: ${error.message}`, 'error');
-  } finally {
-    setLoading(false);
-  }
-};
-
-// Update the filteredAndSortedOrders calculation:
-const filteredAndSortedOrders = pendingOrders
-  .filter(order => {
-    // Search filter
-    const matchesSearch = order.order_id.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Date range filter
-    const orderDate = order.parsedDate;
-    const matchesDateRange = 
-      (!startDate || (orderDate && orderDate >= startDate)) && 
-      (!endDate || (orderDate && orderDate <= endDate));
-    
-    return matchesSearch && matchesDateRange;
-  })
-  .sort((a, b) => {
-    // Sorting by date
-    if (sortOrder === "newest") {
-      return (b.parsedDate?.getTime() || 0) - (a.parsedDate?.getTime() || 0);
-    } else {
-      return (a.parsedDate?.getTime() || 0) - (b.parsedDate?.getTime() || 0);
+  const fetchConfirmOrder = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${BASE_URL}/confirm-orders`);
+      setConfirmOrders(response.data.data);
+    } catch (error) {
+      setError(error.message);
+      showToast(`Failed to load orders : ${error.message}`);
+    } finally {
+      setLoading(false);
     }
-  });
+  };
 
+  // Inside your PendingOrders component, modify the fetchPendingOrders function:
+  const fetchPendingOrders = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${BASE_URL}/pending-orders`);
+      setPendingOrders(
+        response.data.data.map((order) => ({
+          ...order,
+          confirming: false,
+          cancelling: false,
+          confirmed: false,
+          cancelled: false,
+          error: null,
+          selected: false,
+          parsedDate: parseCustomDate(order.order_date), // Add parsed date for sorting
+        }))
+      );
+      setSelectedOrders([]);
+      setSelectAll(false);
+    } catch (error) {
+      setError(error.message);
+      showToast(`Failed to load orders: ${error.message}`, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Update the filteredAndSortedOrders calculation:
+  const filteredAndSortedOrders = pendingOrders
+    .filter((order) => {
+      // Search filter
+      const matchesSearch = order.order_id
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
- 
+      // Date range filter
+      const orderDate = order.parsedDate;
+      const matchesDateRange =
+        (!startDate || (orderDate && orderDate >= startDate)) &&
+        (!endDate || (orderDate && orderDate <= endDate));
+
+      return matchesSearch && matchesDateRange;
+    })
+    .sort((a, b) => {
+      // Sorting by date
+      if (sortOrder === "newest") {
+        return (b.parsedDate?.getTime() || 0) - (a.parsedDate?.getTime() || 0);
+      } else {
+        return (a.parsedDate?.getTime() || 0) - (b.parsedDate?.getTime() || 0);
+      }
+    });
 
   // Toggle selection for a single order
   const toggleOrderSelection = (orderId) => {
-    const updatedOrders = pendingOrders.map(order => 
-      order.order_id === orderId ? { ...order, selected: !order.selected } : order
+    const updatedOrders = pendingOrders.map((order) =>
+      order.order_id === orderId
+        ? { ...order, selected: !order.selected }
+        : order
     );
     setPendingOrders(updatedOrders);
-    
+
     if (selectedOrders.includes(orderId)) {
-      setSelectedOrders(selectedOrders.filter(id => id !== orderId));
+      setSelectedOrders(selectedOrders.filter((id) => id !== orderId));
     } else {
       setSelectedOrders([...selectedOrders, orderId]);
     }
@@ -133,33 +141,43 @@ const filteredAndSortedOrders = pendingOrders
   const toggleSelectAll = () => {
     const newSelectAll = !selectAll;
     setSelectAll(newSelectAll);
-    
-    const updatedOrders = pendingOrders.map(order => ({
+
+    const updatedOrders = pendingOrders.map((order) => ({
       ...order,
-      selected: newSelectAll
+      selected: newSelectAll,
     }));
     setPendingOrders(updatedOrders);
-    
-    setSelectedOrders(newSelectAll ? pendingOrders.map(order => order.order_id) : []);
+
+    setSelectedOrders(
+      newSelectAll ? pendingOrders.map((order) => order.order_id) : []
+    );
   };
 
   // Confirm order handler
   const handleConfirm = async (orderId) => {
     try {
-       const confirm = window.confirm("Are you sure want to confirm this order.");
-      if(!confirm) return
+      const confirm = window.confirm(
+        "Are you sure want to confirm this order."
+      );
+      if (!confirm) return;
       const checkOrderInConfirmOrders = confirmOrders.length === 0;
-      if(!checkOrderInConfirmOrders){
-        setError(`First mark shipped orders from confirm orders`)
-        showToast(`First mark shipped orders from confirm orders`)
-        return
+      if (!checkOrderInConfirmOrders) {
+        setError(`First mark shipped orders from confirm orders`);
+        showToast(`First mark shipped orders from confirm orders`);
+        return;
       }
-      const matchedOrder = pendingOrders.find(order => order.order_id === orderId);
+      const matchedOrder = pendingOrders.find(
+        (order) => order.order_id === orderId
+      );
       if (!matchedOrder) throw new Error("Order not found");
 
-      setPendingOrders(prev => prev.map(order => 
-        order.order_id === orderId ? { ...order, confirming: true, error: null } : order
-      ));
+      setPendingOrders((prev) =>
+        prev.map((order) =>
+          order.order_id === orderId
+            ? { ...order, confirming: true, error: null }
+            : order
+        )
+      );
 
       const response = await axios.post(`${BASE_URL}/add-to-confirm`, {
         order_id: matchedOrder.order_id,
@@ -174,24 +192,35 @@ const filteredAndSortedOrders = pendingOrders
       });
 
       if (response.data.success) {
-        showToast(`Order ${orderId} confirmed successfully!`, 'success');
-        setPendingOrders(prev => prev.map(order => 
-          order.order_id === orderId ? { ...order, confirmed: true, confirming: false } : order
-        ));
+        showToast(`Order ${orderId} confirmed successfully!`, "success");
+        setPendingOrders((prev) =>
+          prev.map((order) =>
+            order.order_id === orderId
+              ? { ...order, confirmed: true, confirming: false }
+              : order
+          )
+        );
         setTimeout(fetchPendingOrders, 1000);
       } else {
         throw new Error(response.data.message || "Confirmation failed");
       }
     } catch (error) {
       console.error("Confirmation error:", error);
-      setPendingOrders(prev => prev.map(order => 
-        order.order_id === orderId ? { 
-          ...order, 
-          confirming: false, 
-          error: error.message 
-        } : order
-      ));
-      showToast(`Failed to confirm order ${orderId}: ${error.message}`, 'error');
+      setPendingOrders((prev) =>
+        prev.map((order) =>
+          order.order_id === orderId
+            ? {
+                ...order,
+                confirming: false,
+                error: error.message,
+              }
+            : order
+        )
+      );
+      showToast(
+        `Failed to confirm order ${orderId}: ${error.message}`,
+        "error"
+      );
     }
   };
 
@@ -199,13 +228,19 @@ const filteredAndSortedOrders = pendingOrders
   const handleCancel = async (orderId) => {
     try {
       const confirm = window.confirm("Are you sure want to cancel this order.");
-      if(!confirm) return
-      const matchedOrder = pendingOrders.find(order => order.order_id === orderId);
+      if (!confirm) return;
+      const matchedOrder = pendingOrders.find(
+        (order) => order.order_id === orderId
+      );
       if (!matchedOrder) throw new Error("Order not found");
 
-      setPendingOrders(prev => prev.map(order => 
-        order.order_id === orderId ? { ...order, cancelling: true, error: null } : order
-      ));
+      setPendingOrders((prev) =>
+        prev.map((order) =>
+          order.order_id === orderId
+            ? { ...order, cancelling: true, error: null }
+            : order
+        )
+      );
 
       const response = await axios.post(`${BASE_URL}/add-to-cancel`, {
         order_id: matchedOrder.order_id,
@@ -220,41 +255,53 @@ const filteredAndSortedOrders = pendingOrders
       });
 
       if (response.data.success) {
-        showToast(`Order ${orderId} cancelled successfully!`, 'success');
-        setPendingOrders(prev => prev.map(order => 
-          order.order_id === orderId ? { ...order, cancelled: true, cancelling: false } : order
-        ));
+        showToast(`Order ${orderId} cancelled successfully!`, "success");
+        setPendingOrders((prev) =>
+          prev.map((order) =>
+            order.order_id === orderId
+              ? { ...order, cancelled: true, cancelling: false }
+              : order
+          )
+        );
         setTimeout(fetchPendingOrders, 1000);
       } else {
         throw new Error(response.data.message || "Cancellation failed");
       }
     } catch (error) {
       console.error("Cancellation error:", error);
-      setPendingOrders(prev => prev.map(order => 
-        order.order_id === orderId ? { 
-          ...order, 
-          cancelling: false, 
-          error: error.message 
-        } : order
-      ));
-      showToast(`Failed to cancel order ${orderId}: ${error.message}`, 'error');
+      setPendingOrders((prev) =>
+        prev.map((order) =>
+          order.order_id === orderId
+            ? {
+                ...order,
+                cancelling: false,
+                error: error.message,
+              }
+            : order
+        )
+      );
+      showToast(`Failed to cancel order ${orderId}: ${error.message}`, "error");
     }
   };
 
   // Batch confirm orders
   const handleBatchConfirm = async () => {
     if (selectedOrders.length === 0) {
-      showToast("Please select orders to confirm", 'warning');
+      showToast("Please select orders to confirm", "warning");
       return;
     }
 
     try {
-      setPendingOrders(prev => prev.map(order => 
-        selectedOrders.includes(order.order_id) ? { ...order, confirming: true, error: null } : order
-      ));
+      setPendingOrders((prev) =>
+        prev.map((order) =>
+          selectedOrders.includes(order.order_id)
+            ? { ...order, confirming: true, error: null }
+            : order
+        )
+      );
 
-      const promises = selectedOrders.map(orderId => {
-        const order = pendingOrders.find(o => o.order_id === orderId);
+      const promises = selectedOrders.map((orderId) => {
+        const order = pendingOrders.find((o) => o.order_id === orderId);
         return axios.post(`${BASE_URL}/add-to-confirm`, {
           order_id: order.order_id,
           styleNumber: order.styleNumber,
@@ -269,44 +316,59 @@ const filteredAndSortedOrders = pendingOrders
       });
 
       const results = await Promise.all(promises);
-      const allSuccess = results.every(res => res.data.success);
+      const allSuccess = results.every((res) => res.data.success);
 
       if (allSuccess) {
-        showToast(`${selectedOrders.length} orders confirmed successfully!`, 'success');
-        setPendingOrders(prev => prev.map(order => 
-          selectedOrders.includes(order.order_id) ? { ...order, confirmed: true, confirming: false } : order
-        ));
+        showToast(
+          `${selectedOrders.length} orders confirmed successfully!`,
+          "success"
+        );
+        setPendingOrders((prev) =>
+          prev.map((order) =>
+            selectedOrders.includes(order.order_id)
+              ? { ...order, confirmed: true, confirming: false }
+              : order
+          )
+        );
         setTimeout(fetchPendingOrders, 1000);
       } else {
         throw new Error("Some orders failed to confirm");
       }
     } catch (error) {
       console.error("Batch confirmation error:", error);
-      setPendingOrders(prev => prev.map(order => 
-        selectedOrders.includes(order.order_id) ? { 
-          ...order, 
-          confirming: false, 
-          error: error.message 
-        } : order
-      ));
-      showToast(`Failed to confirm some orders: ${error.message}`, 'error');
+      setPendingOrders((prev) =>
+        prev.map((order) =>
+          selectedOrders.includes(order.order_id)
+            ? {
+                ...order,
+                confirming: false,
+                error: error.message,
+              }
+            : order
+        )
+      );
+      showToast(`Failed to confirm some orders: ${error.message}`, "error");
     }
   };
 
   // Batch cancel orders
   const handleBatchCancel = async () => {
     if (selectedOrders.length === 0) {
-      showToast("Please select orders to cancel", 'warning');
+      showToast("Please select orders to cancel", "warning");
       return;
     }
 
     try {
-      setPendingOrders(prev => prev.map(order => 
-        selectedOrders.includes(order.order_id) ? { ...order, cancelling: true, error: null } : order
-      ));
+      setPendingOrders((prev) =>
+        prev.map((order) =>
+          selectedOrders.includes(order.order_id)
+            ? { ...order, cancelling: true, error: null }
+            : order
+        )
+      );
 
-      const promises = selectedOrders.map(orderId => {
-        const order = pendingOrders.find(o => o.order_id === orderId);
+      const promises = selectedOrders.map((orderId) => {
+        const order = pendingOrders.find((o) => o.order_id === orderId);
         return axios.post(`${BASE_URL}/add-to-cancel`, {
           order_id: order.order_id,
           styleNumber: order.styleNumber,
@@ -321,71 +383,94 @@ const filteredAndSortedOrders = pendingOrders
       });
 
       const results = await Promise.all(promises);
-      const allSuccess = results.every(res => res.data.success);
+      const allSuccess = results.every((res) => res.data.success);
 
       if (allSuccess) {
-        showToast(`${selectedOrders.length} orders cancelled successfully!`, 'success');
-        setPendingOrders(prev => prev.map(order => 
-          selectedOrders.includes(order.order_id) ? { ...order, cancelled: true, cancelling: false } : order
-        ));
+        showToast(
+          `${selectedOrders.length} orders cancelled successfully!`,
+          "success"
+        );
+        setPendingOrders((prev) =>
+          prev.map((order) =>
+            selectedOrders.includes(order.order_id)
+              ? { ...order, cancelled: true, cancelling: false }
+              : order
+          )
+        );
         setTimeout(fetchPendingOrders, 1000);
       } else {
         throw new Error("Some orders failed to cancel");
       }
     } catch (error) {
       console.error("Batch cancellation error:", error);
-      setPendingOrders(prev => prev.map(order => 
-        selectedOrders.includes(order.order_id) ? { 
-          ...order, 
-          cancelling: false, 
-          error: error.message 
-        } : order
-      ));
-      showToast(`Failed to cancel some orders: ${error.message}`, 'error');
+      setPendingOrders((prev) =>
+        prev.map((order) =>
+          selectedOrders.includes(order.order_id)
+            ? {
+                ...order,
+                cancelling: false,
+                error: error.message,
+              }
+            : order
+        )
+      );
+      showToast(`Failed to cancel some orders: ${error.message}`, "error");
     }
   };
 
   // Export to CSV
   const exportToCSV = () => {
-    const dataToExport = selectedOrders.length > 0 
-      ? pendingOrders.filter(order => selectedOrders.includes(order.order_id))
-      : pendingOrders;
+    const dataToExport =
+      selectedOrders.length > 0
+        ? pendingOrders.filter((order) =>
+            selectedOrders.includes(order.order_id)
+          )
+        : pendingOrders;
 
     if (dataToExport.length === 0) {
-      showToast("No orders to export", 'warning');
+      showToast("No orders to export", "warning");
       return;
     }
 
-    const fileType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
-    const fileExtension = '.xlsx';
-    
-    const ws = XLSX.utils.json_to_sheet(dataToExport.map(order => ({
-      'Order ID': order.order_id,
-      'Style Number': order.styleNumber,
-      'Size': order.size,
-      'Quantity': order.quantity,
-      'Status': order.payment_status,
-      'Shipping Method': order.shipping_method,
-      'Order Date': order.order_date,
-      'Created At': new Date(order.createdAt).toLocaleString(),
-      'Payment Status': order.payment_status
-    })));
-    
-    const wb = { Sheets: { 'data': ws }, SheetNames: ['data'] };
-    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const data = new Blob([excelBuffer], {type: fileType});
-    FileSaver.saveAs(data, `pending_orders_${new Date().toISOString().slice(0,10)}${fileExtension}`);
-    showToast(`Exported ${dataToExport.length} orders to CSV`, 'success');
+    const fileType =
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8";
+    const fileExtension = ".xlsx";
+
+    const ws = XLSX.utils.json_to_sheet(
+      dataToExport.map((order) => ({
+        "Order ID": order.order_id,
+        "Style Number": order.styleNumber,
+        Size: order.size,
+        Quantity: order.quantity,
+        Status: order.payment_status,
+        "Shipping Method": order.shipping_method,
+        "Order Date": order.order_date,
+        "Created At": new Date(order.createdAt).toLocaleString(),
+        "Payment Status": order.payment_status,
+      }))
+    );
+
+    const wb = { Sheets: { data: ws }, SheetNames: ["data"] };
+    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const data = new Blob([excelBuffer], { type: fileType });
+    FileSaver.saveAs(
+      data,
+      `pending_orders_${new Date().toISOString().slice(0, 10)}${fileExtension}`
+    );
+    showToast(`Exported ${dataToExport.length} orders to CSV`, "success");
   };
 
   // Export to PDF
   const exportToPDF = () => {
-    const dataToExport = selectedOrders.length > 0 
-      ? pendingOrders.filter(order => selectedOrders.includes(order.order_id))
-      : pendingOrders;
+    const dataToExport =
+      selectedOrders.length > 0
+        ? pendingOrders.filter((order) =>
+            selectedOrders.includes(order.order_id)
+          )
+        : pendingOrders;
 
     if (dataToExport.length === 0) {
-      showToast("No orders to export", 'warning');
+      showToast("No orders to export", "warning");
       return;
     }
 
@@ -394,29 +479,35 @@ const filteredAndSortedOrders = pendingOrders
 
     // Add title
     doc.setFontSize(16);
-    doc.text(`Pending Orders Report - ${new Date().toLocaleDateString()} Total orders : ${dataToExport.length}`, 14, 15);
+    doc.text(
+      `Pending Orders Report - ${new Date().toLocaleDateString()} Total orders : ${
+        dataToExport.length
+      }`,
+      14,
+      15
+    );
 
     // Prepare data for the table
     const headers = [
-      'Sr.No',
-      'Order ID', 
-      'Style Number', 
-      'Size', 
-      'Quantity', 
-      'Payment Status', 
-      'Shipping Method', 
-      'Order Date'
+      "Sr.No",
+      "Order ID",
+      "Style Number",
+      "Size",
+      "Quantity",
+      "Payment Status",
+      "Shipping Method",
+      "Order Date",
     ];
-    
-    const data = dataToExport.map((order,i) => [
-      i+1,
+
+    const data = dataToExport.map((order, i) => [
+      i + 1,
       order.order_id,
       order.styleNumber,
       order.size,
       order.quantity,
       order.payment_status,
       order.shipping_method,
-      order.order_date
+      order.order_date,
     ]);
 
     // Add the table
@@ -424,38 +515,44 @@ const filteredAndSortedOrders = pendingOrders
       head: [headers],
       body: data,
       startY: 20,
-      theme: 'grid',
+      theme: "grid",
       headStyles: {
         fillColor: [41, 128, 185],
         textColor: 255,
-        fontStyle: 'bold'
+        fontStyle: "bold",
       },
       alternateRowStyles: {
-        fillColor: [245, 245, 245]
-      }
+        fillColor: [245, 245, 245],
+      },
     });
 
     // Save the PDF
-    doc.save(`pending_orders_${new Date().toISOString().slice(0,10)}.pdf`);
-    showToast(`Exported ${dataToExport.length} orders to PDF`, 'success');
+    doc.save(`pending_orders_${new Date().toISOString().slice(0, 10)}.pdf`);
+    showToast(`Exported ${dataToExport.length} orders to PDF`, "success");
   };
 
-// Show warning for 4 day above orders 
-const showWarningForFourDaysPendingOrder = (orderDateStr) => {
-  const orderDate = new Date(orderDateStr);
-  const now = new Date();
-  const diffInMs = now - orderDate; // in milliseconds
-  const diffInDays = diffInMs / (1000 * 60 * 60 * 24); // convert ms to days
+  // Show warning for 4 day above orders
+  const showWarningForFourDaysPendingOrder = (orderDate) => {
+    if (!orderDate) return 0;
 
-  return diffInDays >= 4;
-};
+    // Convert DD-MM-YYYY to YYYY-MM-DD
+    const [day, month, year] = orderDate.split("-");
+    const formattedDateStr = `${year}-${month}-${day}`;
+    const parsedDate = new Date(formattedDateStr);
 
-console.log(showWarningForFourDaysPendingOrder("6/25/2025, 2:44:53 PM"));
+    if (isNaN(parsedDate.getTime())) return 0;
 
+    const nowTime = new Date().getTime();
+    const diffInMs = nowTime - parsedDate.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    return diffInDays;
+  };
 
+  // count of pending for 4 days orders
 
-
-
+  const pendingOverFourDaysCount = filteredAndSortedOrders.filter(
+    (order) => showWarningForFourDaysPendingOrder(order.order_date) > 4
+  ).length;
   // Clear date filters
   const clearDateFilters = () => {
     setStartDate(null);
@@ -467,7 +564,7 @@ console.log(showWarningForFourDaysPendingOrder("6/25/2025, 2:44:53 PM"));
     fetchConfirmOrder();
   }, []);
 
-  console.log(pendingOrders)
+  console.log(pendingOrders);
 
   if (loading && pendingOrders.length === 0) {
     return (
@@ -500,15 +597,19 @@ console.log(showWarningForFourDaysPendingOrder("6/25/2025, 2:44:53 PM"));
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-600 flex items-center">
           <FiClock className="mr-2 text-yellow-500" />
-          Pending Orders 
+          Pending Orders
         </h2>
         <div className="flex items-center space-x-4">
           <p className="text-gray-600">
             <span>Total: {pendingOrders.length}</span>
             {selectedOrders.length > 0 && (
-              <span className="ml-2 text-blue-600">Selected: {selectedOrders.length}</span>
+              <span className="ml-2 text-blue-600">
+                Selected: {selectedOrders.length}
+              </span>
             )}
-            <span className="ml-2">Showing: {filteredAndSortedOrders.length}</span>
+            <span className="ml-2">
+              Showing: {filteredAndSortedOrders.length}
+            </span>
           </p>
           <button
             onClick={fetchPendingOrders}
@@ -536,7 +637,7 @@ console.log(showWarningForFourDaysPendingOrder("6/25/2025, 2:44:53 PM"));
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           <div className="flex flex-col md:flex-row gap-2">
             <div className="flex items-center space-x-2">
               <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2">
@@ -574,7 +675,7 @@ console.log(showWarningForFourDaysPendingOrder("6/25/2025, 2:44:53 PM"));
                 </button>
               )}
             </div>
-            
+
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
@@ -585,7 +686,7 @@ console.log(showWarningForFourDaysPendingOrder("6/25/2025, 2:44:53 PM"));
             </select>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
           {/* {selectedOrders.length > 0 && (
             <>
@@ -620,6 +721,9 @@ console.log(showWarningForFourDaysPendingOrder("6/25/2025, 2:44:53 PM"));
             Export to PDF
           </button>
         </div>
+        <p className="text-red-600 font-semibold">
+          Pending Over 4 Days: {pendingOverFourDaysCount}
+        </p>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -635,21 +739,47 @@ console.log(showWarningForFourDaysPendingOrder("6/25/2025, 2:44:53 PM"));
                     className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Style Number</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shipping Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Order ID
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Style Number
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Size
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Quantity
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payment Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Shipping Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Order Date
+                </th>
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th> */}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Expiry Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredAndSortedOrders.length > 0 ? (
                 filteredAndSortedOrders.map((order, index) => (
-                  <tr key={order.order_id + index} className="hover:bg-gray-50 transition-colors">
+                  <tr
+                    key={order.order_id + index}
+                    className={`hover:bg-gray-50 transition-colors ${
+                      showWarningForFourDaysPendingOrder(order.order_date) > 4
+                        ? "bg-red-100 hover:bg-red-200"
+                        : ""
+                    }`}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
                         type="checkbox"
@@ -658,23 +788,62 @@ console.log(showWarningForFourDaysPendingOrder("6/25/2025, 2:44:53 PM"));
                         className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.styleNumber}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.size}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.quantity}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 ">  <span className="bg-yellow-400  py-1 px-2 text-white rounded-2xl text-xs">{order.payment_status}</span> </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.shipping_method}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {order.order_id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.styleNumber}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.size}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.quantity}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 ">
+                      {" "}
+                      <span className="bg-yellow-100  py-1 px-2 text-yellow-800 rounded-2xl text-xs">
+                        {order.payment_status}
+                      </span>{" "}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.shipping_method}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {order.order_date}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(order.createdAt).toLocaleString()}
+                    </td> */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span
+                        className={` ${
+                          showWarningForFourDaysPendingOrder(order.order_date) >
+                          4
+                            ? "bg-red-100 text-red-800"
+                            : "bg-green-100 text-green-800"
+                        } py-1 px-2 rounded-md text-xs `}
+                      >
+                        {showWarningForFourDaysPendingOrder(order.order_date) >
+                        4
+                          ? `Delay from ${showWarningForFourDaysPendingOrder(
+                              order.order_date
+                            )} days`
+                          : `Remaining ${
+                              4 -
+                              showWarningForFourDaysPendingOrder(
+                                order.order_date
+                              )
+                            } DAYS`}
+                      </span>
                     </td>
+
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         {order.confirming ? (
                           <span className="text-blue-500 flex items-center">
-                            <FiRefreshCw className="animate-spin mr-1" /> Processing...
+                            <FiRefreshCw className="animate-spin mr-1" />{" "}
+                            Processing...
                           </span>
                         ) : order.confirmed ? (
                           <span className="text-green-500 flex items-center">
@@ -682,14 +851,15 @@ console.log(showWarningForFourDaysPendingOrder("6/25/2025, 2:44:53 PM"));
                           </span>
                         ) : order.cancelling ? (
                           <span className="text-yellow-600 flex items-center">
-                            <FiRefreshCw className="animate-spin mr-1" /> Cancelling...
+                            <FiRefreshCw className="animate-spin mr-1" />{" "}
+                            Cancelling...
                           </span>
                         ) : order.cancelled ? (
                           <span className="text-gray-500 flex items-center">
                             <FiX className="mr-1" /> Cancelled
                           </span>
                         ) : order.error ? (
-                          <span 
+                          <span
                             className="text-red-500 flex items-center cursor-help"
                             title={order.error}
                           >
@@ -719,9 +889,12 @@ console.log(showWarningForFourDaysPendingOrder("6/25/2025, 2:44:53 PM"));
                 ))
               ) : (
                 <tr>
-                  <td colSpan="10" className="px-6 py-4 text-center text-sm text-gray-500">
-                    {searchTerm || startDate || endDate 
-                      ? "No matching orders found for your filters" 
+                  <td
+                    colSpan="10"
+                    className="px-6 py-4 text-center text-sm text-gray-500"
+                  >
+                    {searchTerm || startDate || endDate
+                      ? "No matching orders found for your filters"
                       : "No pending orders found"}
                   </td>
                 </tr>
