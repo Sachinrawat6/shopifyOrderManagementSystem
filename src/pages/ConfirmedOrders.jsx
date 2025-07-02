@@ -299,7 +299,7 @@ const handleBatchShip = async () => {
   // Export to PDF
   const exportToPDF = () => {
     const dataToExport = selectedOrders.length > 0 
-      ? confirmedOrders.filter(order => selectedOrders.includes(order.order_id)) && confirmedOrders.filter(order => !(order.order_status?.toLowerCase().includes("express shipping")) )
+      ? confirmedOrders.filter(order => selectedOrders.includes(order.order_id)) && confirmedOrders.filter(order => !(order.shipping_method?.toLowerCase().includes("express shipping")) )
       : confirmedOrders;
 
     if (dataToExport.length === 0) {
@@ -308,12 +308,13 @@ const handleBatchShip = async () => {
     }
 
     const doc = new jsPDF();
-    const title = `Confirmed Orders Report - ${new Date().toLocaleDateString()}`;
+    const title = `Confirmed Orders Report - ${new Date().toLocaleDateString()} Total Orders : ${dataToExport.length}`;
     const headers = [
-      ['Order ID', 'Style Number', 'Size', 'Quantity', 'Status', 'Shipping Method', 'Order Date']
+      ['Sr.No','Order ID', 'Style Number', 'Size', 'Quantity', 'Status', 'Shipping Method', 'Order Date']
     ];
     
-    const data = dataToExport.map(order => [
+    const data = dataToExport.map((order,i) => [
+      i+1,
       order.order_id,
       order.styleNumber,
       order.size,
@@ -346,7 +347,7 @@ const handleBatchShip = async () => {
 
   const exportShippingOrderToPDF = () => {
   
-    const dataToExport = confirmedOrders.filter(order => order?.order_status?.toLowerCase().includes("express shipping")); 
+    const dataToExport = confirmedOrders.filter(order => order?.shipping_method?.toLowerCase().includes("express shipping")); 
 
     if (dataToExport.length === 0) {
       toast.warning("No orders to export");
@@ -354,12 +355,13 @@ const handleBatchShip = async () => {
     }
 
     const doc = new jsPDF();
-    const title = `Confirmed Orders Report - ${new Date().toLocaleDateString()}`;
+    const title = `Confirmed Orders Report - ${new Date().toLocaleDateString()} Total orders : ${dataToExport.length}`;
     const headers = [
-      ['Order ID', 'Style Number', 'Size', 'Quantity', 'Status', 'Shipping Method', 'Order Date']
+      ['Sr.No','Order ID', 'Style Number', 'Size', 'Quantity', 'Status', 'Shipping Method', 'Order Date']
     ];
     
-    const data = dataToExport.map(order => [
+    const data = dataToExport.map((order,i) => [
+      i+1 ,
       order.order_id,
       order.styleNumber,
       order.size,
