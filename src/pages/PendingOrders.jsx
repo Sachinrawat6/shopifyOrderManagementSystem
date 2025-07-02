@@ -364,7 +364,7 @@ const filteredAndSortedOrders = pendingOrders
       'Style Number': order.styleNumber,
       'Size': order.size,
       'Quantity': order.quantity,
-      'Status': order.order_status,
+      'Status': order.payment_status,
       'Shipping Method': order.shipping_method,
       'Order Date': order.order_date,
       'Created At': new Date(order.createdAt).toLocaleString(),
@@ -403,7 +403,7 @@ const filteredAndSortedOrders = pendingOrders
       'Style Number', 
       'Size', 
       'Quantity', 
-      'Status', 
+      'Payment Status', 
       'Shipping Method', 
       'Order Date'
     ];
@@ -414,7 +414,7 @@ const filteredAndSortedOrders = pendingOrders
       order.styleNumber,
       order.size,
       order.quantity,
-      order.order_status,
+      order.payment_status,
       order.shipping_method,
       order.order_date
     ]);
@@ -440,6 +440,22 @@ const filteredAndSortedOrders = pendingOrders
     showToast(`Exported ${dataToExport.length} orders to PDF`, 'success');
   };
 
+// Show warning for 4 day above orders 
+const showWarningForFourDaysPendingOrder = (orderDateStr) => {
+  const orderDate = new Date(orderDateStr);
+  const now = new Date();
+  const diffInMs = now - orderDate; // in milliseconds
+  const diffInDays = diffInMs / (1000 * 60 * 60 * 24); // convert ms to days
+
+  return diffInDays >= 4;
+};
+
+console.log(showWarningForFourDaysPendingOrder("6/25/2025, 2:44:53 PM"));
+
+
+
+
+
   // Clear date filters
   const clearDateFilters = () => {
     setStartDate(null);
@@ -450,6 +466,8 @@ const filteredAndSortedOrders = pendingOrders
     fetchPendingOrders();
     fetchConfirmOrder();
   }, []);
+
+  console.log(pendingOrders)
 
   if (loading && pendingOrders.length === 0) {
     return (
@@ -621,7 +639,7 @@ const filteredAndSortedOrders = pendingOrders
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Style Number</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shipping Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
@@ -644,7 +662,7 @@ const filteredAndSortedOrders = pendingOrders
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.styleNumber}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.size}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.quantity}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.order_status}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 ">  <span className="bg-yellow-400  py-1 px-2 text-white rounded-2xl text-xs">{order.payment_status}</span> </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.shipping_method}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {order.order_date}

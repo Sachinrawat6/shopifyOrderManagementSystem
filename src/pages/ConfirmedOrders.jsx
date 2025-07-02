@@ -310,7 +310,7 @@ const handleBatchShip = async () => {
     const doc = new jsPDF();
     const title = `Confirmed Orders Report - ${new Date().toLocaleDateString()} Total Orders : ${dataToExport.length}`;
     const headers = [
-      ['Sr.No','Order ID', 'Style Number', 'Size', 'Quantity', 'Status', 'Shipping Method', 'Order Date']
+      ['Sr.No','Order ID', 'Style Number', 'Size', 'Quantity', 'Payment Status', 'Shipping Method', 'Order Date']
     ];
     
     const data = dataToExport.map((order,i) => [
@@ -319,7 +319,7 @@ const handleBatchShip = async () => {
       order.styleNumber,
       order.size,
       order.quantity,
-      order.order_status,
+      order.payment_status,
       order.shipping_method,
       order.order_date
     ]);
@@ -357,7 +357,7 @@ const handleBatchShip = async () => {
     const doc = new jsPDF();
     const title = `Express Orders Report - ${new Date().toLocaleDateString()} Total orders : ${dataToExport.length}`;
     const headers = [
-      ['Sr.No','Order ID', 'Style Number', 'Size', 'Quantity', 'Status', 'Shipping Method', 'Order Date']
+      ['Sr.No','Order ID', 'Style Number', 'Size', 'Quantity', 'Payment Status', 'Shipping Method', 'Order Date']
     ];
     
     const data = dataToExport.map((order,i) => [
@@ -366,7 +366,7 @@ const handleBatchShip = async () => {
       order.styleNumber,
       order.size,
       order.quantity,
-      order.order_status,
+      order.payment_status,
       order.shipping_method,
       order.order_date
     ]);
