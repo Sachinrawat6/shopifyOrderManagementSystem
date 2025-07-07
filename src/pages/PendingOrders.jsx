@@ -828,7 +828,7 @@ const PendingOrders = () => {
                         4
                           ? `Delay from ${showWarningForFourDaysPendingOrder(
                               order.order_date
-                            )} days`
+                            )-4} days`
                           : `Remaining ${
                               4 -
                               showWarningForFourDaysPendingOrder(
