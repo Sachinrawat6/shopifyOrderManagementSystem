@@ -867,7 +867,15 @@ const PendingOrders = () => {
                           </span>
                         ) : (
                           <>
+                           
                             <button
+                              onClick={() => handleCancel(order.order_id)}
+                              className="text-red-600 cursor-pointer hover:text-red-800 flex items-center px-3 py-1 border border-red-200 rounded hover:bg-red-50 transition-colors"
+                              disabled={order.confirming}
+                            >
+                              <FiX className="mr-1" /> Cancel
+                            </button>
+                             <button
 
                               style={{opacity:showWarningForFourDaysPendingOrder(order.order_date) > 4 ? "0":"1"}}
                               onClick={() => handleConfirm(order.order_id)}
@@ -875,13 +883,6 @@ const PendingOrders = () => {
                               disabled={order.cancelling}
                             >
                               <FiCheck className="mr-1" /> Confirm
-                            </button>
-                            <button
-                              onClick={() => handleCancel(order.order_id)}
-                              className="text-red-600 cursor-pointer hover:text-red-800 flex items-center px-3 py-1 border border-red-200 rounded hover:bg-red-50 transition-colors"
-                              disabled={order.confirming}
-                            >
-                              <FiX className="mr-1" /> Cancel
                             </button>
                           </>
                         )}
