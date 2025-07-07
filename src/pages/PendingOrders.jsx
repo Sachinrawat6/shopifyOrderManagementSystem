@@ -162,9 +162,13 @@ const PendingOrders = () => {
       if (!confirm) return;
       const checkOrderInConfirmOrders = confirmOrders.length === 0;
       if (!checkOrderInConfirmOrders) {
+        const confirm = window.confirm("Are you sure to confirm this order while confirm orders have extra orders remaining");
+        if(!confirm){
         setError(`First mark shipped orders from confirm orders`);
         showToast(`First mark shipped orders from confirm orders`);
         return;
+        }
+      
       }
       const matchedOrder = pendingOrders.find(
         (order) => order.order_id === orderId
