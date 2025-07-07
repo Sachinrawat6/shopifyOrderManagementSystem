@@ -868,6 +868,8 @@ const PendingOrders = () => {
                         ) : (
                           <>
                             <button
+
+                              style={{opacity:showWarningForFourDaysPendingOrder(order.order_date) > 4 ? "0":"1"}}
                               onClick={() => handleConfirm(order.order_id)}
                               className="text-green-600 cursor-pointer hover:text-green-800 flex items-center px-3 py-1 border border-green-200 rounded hover:bg-green-50 transition-colors"
                               disabled={order.cancelling}
