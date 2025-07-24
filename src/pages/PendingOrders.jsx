@@ -19,6 +19,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import EditPage from "../components/EditPage";
 
 const PendingOrders = () => {
   const [pendingOrders, setPendingOrders] = useState([]);
@@ -31,8 +32,10 @@ const PendingOrders = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [sortOrder, setSortOrder] = useState("oldest"); // "newest" or "oldest"
-  const BASE_URL =
-    "https://return-inventory-backend.onrender.com/api/v1/shopify";
+  const [edit, setEdit] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState(null);
+
+  const BASE_URL = "https://return-inventory-backend.onrender.com/api/v1/shopify";
 
   // Toast notification helper
   const showToast = (message, type = "info") => {
@@ -68,6 +71,8 @@ const PendingOrders = () => {
       setLoading(false);
     }
   };
+
+  console.log(pendingOrders)
 
   // Inside your PendingOrders component, modify the fetchPendingOrders function:
   const fetchPendingOrders = async () => {
@@ -163,12 +168,12 @@ const PendingOrders = () => {
       const checkOrderInConfirmOrders = confirmOrders.length === 0;
       if (!checkOrderInConfirmOrders) {
         const confirm = window.confirm("Are you sure to confirm this order while confirm orders have extra orders remaining");
-        if(!confirm){
-        setError(`First mark shipped orders from confirm orders`);
-        showToast(`First mark shipped orders from confirm orders`);
-        return;
+        if (!confirm) {
+          setError(`First mark shipped orders from confirm orders`);
+          showToast(`First mark shipped orders from confirm orders`);
+          return;
         }
-      
+
       }
       const matchedOrder = pendingOrders.find(
         (order) => order.order_id === orderId
@@ -214,10 +219,10 @@ const PendingOrders = () => {
         prev.map((order) =>
           order.order_id === orderId
             ? {
-                ...order,
-                confirming: false,
-                error: error.message,
-              }
+              ...order,
+              confirming: false,
+              error: error.message,
+            }
             : order
         )
       );
@@ -277,10 +282,10 @@ const PendingOrders = () => {
         prev.map((order) =>
           order.order_id === orderId
             ? {
-                ...order,
-                cancelling: false,
-                error: error.message,
-              }
+              ...order,
+              cancelling: false,
+              error: error.message,
+            }
             : order
         )
       );
@@ -344,10 +349,10 @@ const PendingOrders = () => {
         prev.map((order) =>
           selectedOrders.includes(order.order_id)
             ? {
-                ...order,
-                confirming: false,
-                error: error.message,
-              }
+              ...order,
+              confirming: false,
+              error: error.message,
+            }
             : order
         )
       );
@@ -411,10 +416,10 @@ const PendingOrders = () => {
         prev.map((order) =>
           selectedOrders.includes(order.order_id)
             ? {
-                ...order,
-                cancelling: false,
-                error: error.message,
-              }
+              ...order,
+              cancelling: false,
+              error: error.message,
+            }
             : order
         )
       );
@@ -427,8 +432,8 @@ const PendingOrders = () => {
     const dataToExport =
       selectedOrders.length > 0
         ? pendingOrders.filter((order) =>
-            selectedOrders.includes(order.order_id)
-          )
+          selectedOrders.includes(order.order_id)
+        )
         : pendingOrders;
 
     if (dataToExport.length === 0) {
@@ -469,8 +474,8 @@ const PendingOrders = () => {
     const dataToExport =
       selectedOrders.length > 0
         ? pendingOrders.filter((order) =>
-            selectedOrders.includes(order.order_id)
-          )
+          selectedOrders.includes(order.order_id)
+        )
         : pendingOrders;
 
     if (dataToExport.length === 0) {
@@ -484,8 +489,7 @@ const PendingOrders = () => {
     // Add title
     doc.setFontSize(16);
     doc.text(
-      `Pending Orders Report - ${new Date().toLocaleDateString()} Total orders : ${
-        dataToExport.length
+      `Pending Orders Report - ${new Date().toLocaleDateString()} Total orders : ${dataToExport.length
       }`,
       14,
       15
@@ -568,7 +572,17 @@ const PendingOrders = () => {
     fetchConfirmOrder();
   }, []);
 
-  console.log(pendingOrders);
+  // console.log(pendingOrders);
+
+  const handleEdit = () => {
+    setEdit(true);
+
+  }
+
+
+
+
+
 
   if (loading && pendingOrders.length === 0) {
     return (
@@ -596,6 +610,8 @@ const PendingOrders = () => {
   }
 
   return (
+
+
     <div className="p-6">
       <ToastContainer />
       <div className="flex justify-between items-center mb-6">
@@ -778,11 +794,10 @@ const PendingOrders = () => {
                 filteredAndSortedOrders.map((order, index) => (
                   <tr
                     key={order.order_id + index}
-                    className={`hover:bg-gray-50 transition-colors ${
-                      showWarningForFourDaysPendingOrder(order.order_date) > 4
-                        ? "bg-red-100 hover:bg-red-200"
-                        : ""
-                    }`}
+                    className={`hover:bg-gray-50 transition-colors ${showWarningForFourDaysPendingOrder(order.order_date) > 4
+                      ? "bg-red-100 hover:bg-red-200"
+                      : ""
+                      }`}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
@@ -810,8 +825,8 @@ const PendingOrders = () => {
                         {order.payment_status}
                       </span>{" "}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {order.shipping_method}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500  ">
+                      <span> {order.shipping_method?.substring(0, 25)}... </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {order.order_date}
@@ -821,24 +836,22 @@ const PendingOrders = () => {
                     </td> */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <span
-                        className={` ${
-                          showWarningForFourDaysPendingOrder(order.order_date) >
+                        className={` ${showWarningForFourDaysPendingOrder(order.order_date) >
                           4
-                            ? "bg-red-100 text-red-800"
-                            : "bg-green-100 text-green-800"
-                        } py-1 px-2 rounded-md text-xs `}
+                          ? "bg-red-100 text-red-800"
+                          : "bg-green-100 text-green-800"
+                          } py-1 px-2 rounded-md text-xs `}
                       >
                         {showWarningForFourDaysPendingOrder(order.order_date) >
-                        4
+                          4
                           ? `Delay from ${showWarningForFourDaysPendingOrder(
-                              order.order_date
-                            )-4} days`
-                          : `Remaining ${
-                              4 -
-                              showWarningForFourDaysPendingOrder(
-                                order.order_date
-                              )
-                            } DAYS`}
+                            order.order_date
+                          ) - 4} days`
+                          : `Remaining ${4 -
+                          showWarningForFourDaysPendingOrder(
+                            order.order_date
+                          )
+                          } DAYS`}
                       </span>
                     </td>
 
@@ -871,7 +884,7 @@ const PendingOrders = () => {
                           </span>
                         ) : (
                           <>
-                           
+
                             <button
                               onClick={() => handleCancel(order.order_id)}
                               className="text-red-600 cursor-pointer hover:text-red-800 flex items-center px-3 py-1 border border-red-200 rounded hover:bg-red-50 transition-colors"
@@ -879,15 +892,29 @@ const PendingOrders = () => {
                             >
                               <FiX className="mr-1" /> Cancel
                             </button>
-                             <button
+                            <button
 
-                              style={{opacity:showWarningForFourDaysPendingOrder(order.order_date) > 4 ? "0":"1"}}
+                              style={{ opacity: showWarningForFourDaysPendingOrder(order.order_date) > 4 ? "0" : "1" }}
                               onClick={() => handleConfirm(order.order_id)}
                               className="text-green-600 cursor-pointer hover:text-green-800 flex items-center px-3 py-1 border border-green-200 rounded hover:bg-green-50 transition-colors"
                               disabled={order.cancelling}
                             >
                               <FiCheck className="mr-1" /> Confirm
                             </button>
+
+                            {editingOrderId === order._id ? (
+                              <EditPage order={order} onClose={() => setEditingOrderId(null)} refreshPendingOrders={fetchPendingOrders} />
+                            ) : (
+                              <button
+                                style={{ opacity: showWarningForFourDaysPendingOrder(order.order_date) > 4 ? "0" : "1" }}
+                                onClick={() => setEditingOrderId(order._id)}
+                                className="text-yellow-600 cursor-pointer hover:text-yellow-800 flex items-center px-3 py-1 border border-yellow-200 rounded hover:bg-yellow-50 transition-colors"
+                                disabled={order.cancelling}
+                              >
+                                <FiCheck className="mr-1" /> Edit
+                              </button>
+                            )}
+
                           </>
                         )}
                       </div>
@@ -911,6 +938,7 @@ const PendingOrders = () => {
         </div>
       </div>
     </div>
+
   );
 };
 
