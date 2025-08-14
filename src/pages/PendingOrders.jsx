@@ -894,7 +894,7 @@ const PendingOrders = () => {
                             </button>
                             <button
 
-                              style={{ opacity: showWarningForFourDaysPendingOrder(order.order_date) > 4 ? "0" : "1" }}
+                              // style={{ opacity: showWarningForFourDaysPendingOrder(order.order_date) > 4 ? "0" : "1" }}
                               onClick={() => handleConfirm(order.order_id)}
                               className="text-green-600 cursor-pointer hover:text-green-800 flex items-center px-3 py-1 border border-green-200 rounded hover:bg-green-50 transition-colors"
                               disabled={order.cancelling}
@@ -906,7 +906,7 @@ const PendingOrders = () => {
                               <EditPage order={order} onClose={() => setEditingOrderId(null)} refreshPendingOrders={fetchPendingOrders} />
                             ) : (
                               <button
-                                style={{ opacity: showWarningForFourDaysPendingOrder(order.order_date) > 4 ? "0" : "1" }}
+                                // style={{ opacity: showWarningForFourDaysPendingOrder(order.order_date) > 4 ? "0" : "1" }}
                                 onClick={() => setEditingOrderId(order._id)}
                                 className="text-yellow-600 cursor-pointer hover:text-yellow-800 flex items-center px-3 py-1 border border-yellow-200 rounded hover:bg-yellow-50 transition-colors"
                                 disabled={order.cancelling}
