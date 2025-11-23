@@ -10,6 +10,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: "preCancelled", label: "Pre Cancelled", icon: <FiX className="text-lg" /> },
     { id: "shipped", label: "All Orders", icon: <FiBox className="text-lg" /> },
     { id: "dashboard", label: "Dashboard", icon: <FiCodesandbox className="text-lg" /> },
+    { id: "manual_cancel", label: "Manual Cancel", icon: <FiX className="text-lg" /> },
   ];
 
   return (
@@ -18,7 +19,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
       <div className="p-6 border-b border-gray-100">
         <h1 className="text-xl font-bold text-indigo-600">Shopify OMS</h1>
       </div>
-      
+
       {/* Navigation Items */}
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
@@ -26,11 +27,10 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             <li key={item.id}>
               <button
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                  activeTab === item.id
-                    ? "bg-indigo-50 text-indigo-600 font-medium"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 ${activeTab === item.id
+                  ? "bg-indigo-50 text-indigo-600 font-medium"
+                  : "text-gray-600 hover:bg-gray-50"
+                  }`}
               >
                 <span className={`${activeTab === item.id ? "text-indigo-500" : "text-gray-400"}`}>
                   {item.icon}
@@ -41,7 +41,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           ))}
         </ul>
       </nav>
-      
+
       {/* Bottom Settings/Logout */}
       <div className="p-4 border-t border-gray-100">
         {/* <ul className="space-y-2">
