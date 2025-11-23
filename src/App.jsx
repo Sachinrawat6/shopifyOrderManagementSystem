@@ -7,6 +7,7 @@ import UploadOrderList from "./pages/UploadOrderList"
 import ShippedOrders from "./pages/ShippedOrders";
 import Dashboard from "./pages/Dashboard";
 import PreCancelledOrder from "./pages/PreCancelledOrder";
+import Action from "./pages/Action";
 
 const App = () => {
   const [activeTab, setActiveTab] = useState("upload");
@@ -14,16 +15,17 @@ const App = () => {
   return (
     <div className="flex">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      
+
       <main className="ml-64 flex-1 p-8">
         {/* Your main content based on activeTab */}
-        {activeTab === "upload" && <UploadOrderList/>}
-        {activeTab === "pending" && <PendingOrders/>}
-        {activeTab === "confirmed" && <ConfirmedOrders/>}
-        {activeTab === "cancel" && <CancelOrders/>}
-        {activeTab === "shipped" && <ShippedOrders/>}
-        {activeTab === "dashboard" && <Dashboard/>}
-        {activeTab === "preCancelled" && <PreCancelledOrder/>}
+        {activeTab === "upload" && <UploadOrderList />}
+        {activeTab === "pending" && <PendingOrders />}
+        {activeTab === "confirmed" && <ConfirmedOrders />}
+        {activeTab === "cancel" && <CancelOrders />}
+        {activeTab === "shipped" && <ShippedOrders />}
+        {activeTab === "dashboard" && <Dashboard />}
+        {activeTab === "preCancelled" && <PreCancelledOrder />}
+        {activeTab === "manual_cancel" && <Action />}
       </main>
     </div>
   );
